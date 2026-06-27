@@ -1,906 +1,1597 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BILAX 1.8 — Terminal Adventure</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      background: #080808;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Courier New', Courier, monospace;
-      padding: 16px;
-    }
-
-    /* Outer monitor bezel */
-    .monitor {
-      background: #1c1c1e;
-      border-radius: 12px;
-      padding: 18px 18px 14px;
-      box-shadow:
-        0 0 0 2px #2a2a2c,
-        0 0 60px rgba(0, 200, 0, 0.08),
-        0 20px 60px rgba(0,0,0,0.8);
-      width: 760px;
-      max-width: 100%;
-    }
-
-    .monitor-top {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 12px;
-      padding: 0 2px;
-    }
-
-    .dot { width: 10px; height: 10px; border-radius: 50%; }
-    .dot-red   { background: #3a1010; }
-    .dot-yellow{ background: #2a2010; }
-    .dot-green { background: #103a10; }
-
-    .monitor-title {
-      margin-left: auto;
-      color: #2a3a2a;
-      font-size: 10px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-    }
-
-    /* CRT screen */
-    .screen {
-      background: #050d05;
-      border-radius: 4px;
-      border: 1px solid #0d1f0d;
-      box-shadow:
-        inset 0 0 80px rgba(0,0,0,0.6),
-        inset 0 0 20px rgba(0,40,0,0.4);
-      position: relative;
-      overflow: hidden;
-      height: 68vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    /* Scanlines overlay */
-    .screen::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: repeating-linear-gradient(
-        to bottom,
-        transparent 0px,
-        transparent 3px,
-        rgba(0,0,0,0.12) 3px,
-        rgba(0,0,0,0.12) 4px
-      );
-      pointer-events: none;
-      z-index: 10;
-    }
-
-    .output-area {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px 20px 8px;
-      scrollbar-width: thin;
-      scrollbar-color: #1a3a1a transparent;
-    }
-
-    .output-area::-webkit-scrollbar { width: 4px; }
-    .output-area::-webkit-scrollbar-track { background: transparent; }
-    .output-area::-webkit-scrollbar-thumb { background: #1a3a1a; border-radius: 2px; }
-
-    .line {
-      color: #00cc44;
-      font-size: 13px;
-      line-height: 1.85;
-      white-space: pre-wrap;
-      text-shadow: 0 0 6px rgba(0, 200, 60, 0.4);
-      display: block;
-    }
-
-    .line.dim    { color: #006622; text-shadow: none; }
-    .line.system { color: #00aaff; text-shadow: 0 0 6px rgba(0,170,255,0.3); }
-    .line.warn   { color: #ccaa00; text-shadow: 0 0 6px rgba(204,170,0,0.35); }
-    .line.danger { color: #ff3333; text-shadow: 0 0 10px rgba(255,50,50,0.6); }
-    .line.echo   { color: #44ff88; opacity: 0.7; }
-    .line.title  { color: #00ff66; text-shadow: 0 0 12px rgba(0,255,100,0.5); }
-
-    /* Input row */
-    .input-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 10px 20px 12px;
-      border-top: 1px solid #0a1a0a;
-      background: #040c04;
-    }
-
-    .prompt {
-      color: #00cc44;
-      font-size: 13px;
-      text-shadow: 0 0 6px rgba(0,200,60,0.4);
-      white-space: nowrap;
-      user-select: none;
-    }
-
-    #cmdInput {
-      flex: 1;
-      background: transparent;
-      border: none;
-      outline: none;
-      color: #00ff66;
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 13px;
-      text-shadow: 0 0 6px rgba(0,255,100,0.45);
-      caret-color: #00ff66;
-    }
-
-    #cmdInput::placeholder {
-      color: #115522;
-      letter-spacing: 1px;
-      animation: blink 1.2s step-end infinite;
-    }
-
-    /* Blinking cursor */
-    @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
-    #cmdInput:focus + .cursor { display: none; }
-    .cursor {
-      display: inline-block;
-      width: 8px;
-      height: 14px;
-      background: #00cc44;
-      animation: blink 1s step-end infinite;
-      vertical-align: middle;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BILAX 1.8 — A Point &amp; Click Adventure</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+  }
+  #container {
+    position: relative;
+    width: 960px;
+    height: 540px;
+  }
+  canvas {
+    display: block;
+    image-rendering: pixelated;
+  }
+  /* CRT scanline overlay — purely visual, pointer-events disabled */
+  #scanlines {
+    position: absolute;
+    top: 0; left: 0;
+    width: 960px; height: 540px;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.12) 2px,
+      rgba(0,0,0,0.12) 4px
+    );
+    z-index: 10;
+  }
+</style>
 </head>
 <body>
-
-<div class="monitor">
-  <div class="monitor-top">
-    <div class="dot dot-red"></div>
-    <div class="dot dot-yellow"></div>
-    <div class="dot dot-green"></div>
-    <span class="monitor-title">TERMINAL v2.1</span>
-  </div>
-  <div class="screen">
-    <div class="output-area" id="outputArea">
-      <div id="output"></div>
-    </div>
-    <div class="input-row">
-      <span class="prompt">&gt;_&nbsp;</span>
-      <input id="cmdInput" type="text" autocomplete="off" spellcheck="false" autofocus>
-    </div>
-  </div>
+<div id="container">
+  <canvas id="gameCanvas" width="960" height="540"></canvas>
+  <div id="scanlines"></div>
 </div>
 
 <script>
-// ─── Line-by-line print queue ─────────────────────────────────────────────────
+"use strict";
 
-const output    = document.getElementById("output");
-const outputArea = document.getElementById("outputArea");
+// ============================================================
+// ASSET MANIFEST
+// Stores all Stable Diffusion prompts for every art asset.
+// Drop the matching PNG into /assets/ and it auto-loads.
+// ============================================================
+const ASSET_MANIFEST = {
+  backgrounds: {
+    living_room:    { file: "bg_living_room.png",    w: 960, h: 420,
+      sd: "point and click adventure game, 2d painted background, dark horror night, living room interior, worn sofa, moonlight through cracked window, cinematic lighting, LucasArts style, detailed" },
+    hallway:        { file: "bg_hallway.png",         w: 960, h: 420,
+      sd: "point and click adventure game, 2d painted background, dark horror night, narrow hallway, coat closet door, stairs up, shadows, moonlight, LucasArts style, detailed" },
+    master_bedroom: { file: "bg_master_bedroom.png",  w: 960, h: 420,
+      sd: "point and click adventure game, 2d painted background, dark horror night, master bedroom, rumpled bed, wardrobe, moonlight through window, LucasArts style, detailed" },
+    attic_dark:     { file: "bg_attic_dark.png",      w: 960, h: 420,
+      sd: "point and click adventure game, 2d painted background, dark horror night, dark attic, boxes old furniture, pitch black, LucasArts style, detailed" },
+    attic_lit:      { file: "bg_attic_lit.png",       w: 960, h: 420,
+      sd: "point and click adventure game, 2d painted background, dark horror night, attic lit by flashlight, old trunk visible, dusty beams, LucasArts style, detailed" },
+    kitchen:        { file: "bg_kitchen.png",          w: 960, h: 420,
+      sd: "point and click adventure game, 2d painted background, dark horror night, kitchen, dirty dishes, drawer, moonlight, LucasArts style, detailed" },
+    pantry:         { file: "bg_pantry.png",           w: 960, h: 420,
+      sd: "point and click adventure game, 2d painted background, dark horror night, cramped pantry, shelves canned goods, dark shadows, LucasArts style, detailed" },
+    win_screen:     { file: "bg_win.png",              w: 960, h: 540,
+      sd: "point and click adventure game, 2d painted, exterior house at night, person escaping through front door, moonlight, freedom, LucasArts style" },
+  },
+  sprites: {
+    player_idle:     { file: "player_idle.png",         w: 64,  h: 96,
+      sd: "point and click adventure game sprite, person standing idle, front view, dark clothes, scared expression, transparent background, pixel art style" },
+    player_walk:     { file: "player_walk.png",          w: 256, h: 96,  frames: 4,
+      sd: "point and click adventure game sprite sheet, 4 frame walk cycle, side view, dark clothes, transparent background, pixel art" },
+    player_hide:     { file: "player_hide.png",          w: 64,  h: 64,
+      sd: "point and click adventure game sprite, person crouching hiding, transparent background, pixel art" },
+    bilax_idle:      { file: "bilax_idle.png",           w: 128, h: 192,
+      sd: "point and click adventure game sprite, tall shadowy monster facing camera, glowing eyes, horror, transparent background, painted style" },
+    bilax_doorway:   { file: "bilax_doorway.png",        w: 128, h: 192,
+      sd: "point and click adventure game sprite, shadowy monster silhouette in doorway, backlit, horror, transparent background, painted style" },
+    item_key:        { file: "item_key.png",             w: 32,  h: 32,
+      sd: "point and click adventure game item sprite, old brass key, transparent background, painted" },
+    item_flashlight: { file: "item_flashlight.png",      w: 32,  h: 32,
+      sd: "point and click adventure game item sprite, compact flashlight, transparent background, painted" },
+    item_note:       { file: "item_note.png",            w: 32,  h: 32,
+      sd: "point and click adventure game item sprite, crumpled note paper, transparent background, painted" },
+  },
+  // Shared SD settings:
+  // negative: "text, watermark, signature, blurry, photorealistic, 3d render, anime"
+  // model: DreamShaper or Deliberate v3
+  // steps: 30, cfg: 7
+};
 
-let printQueue   = [];
-let queueRunning = false;
-let lineDelay    = 70;   // ms between lines; changed per phase
-
-function flushQueue() {
-  // Instantly dump everything remaining (used when player types while printing)
-  while (printQueue.length) {
-    const { text, cls } = printQueue.shift();
-    _appendLine(text, cls);
+// ============================================================
+// CONFIG — All constants; no magic numbers elsewhere
+// ============================================================
+const CONFIG = {
+  WIDTH: 960, HEIGHT: 540,
+  GAME_HEIGHT: 420,      // canvas area above bottom UI panel
+  PANEL_HEIGHT: 120,     // bottom UI panel height
+  PLAYER_SPEED: 4,       // pixels per frame movement speed
+  BILAX_MOVE_CHANCE: 0.55,
+  TRANSITION_FRAMES: 18, // ~0.3 s at 60 fps
+  WALK_Y_MIN: 260,       // walkable band top boundary
+  WALK_Y_MAX: 390,       // walkable band bottom boundary
+  PLAYER_SCALE_MIN: 0.6, // scale at top of walk band (far = small)
+  PLAYER_SCALE_MAX: 1.0, // scale at bottom (near = full size)
+  DIALOG_DURATION: 180,  // frames a dialog line stays visible
+  DANGER_PULSE_SPEED: 0.08,
+  FONT:       "16px 'Courier New', monospace",
+  FONT_SMALL: "13px 'Courier New', monospace",
+  COLORS: {
+    bg:         "#000",
+    panel:      "#111",
+    panelBorder:"#333",
+    text:       "#c8ffc8",
+    danger:     "#ff4444",
+    warn:       "#ffaa44",
+    safe:       "#44ff88",
+    invSlot:    "#1a1a1a",
+    verbBg:     "#222",
+    verbHover:  "#444",
+    verbText:   "#c8ffc8",
   }
-  queueRunning = false;
-}
+};
 
-function _appendLine(text, cls) {
-  const el = document.createElement("span");
-  el.className = "line" + (cls ? " " + cls : "");
-  el.textContent = text + "\n";
-  output.appendChild(el);
-  outputArea.scrollTop = outputArea.scrollHeight;
-}
-
-function _drainQueue() {
-  if (!printQueue.length) { queueRunning = false; return; }
-  const { text, cls } = printQueue.shift();
-  _appendLine(text, cls);
-  setTimeout(_drainQueue, lineDelay);
-}
-
-function pr(text = "", cls = "") {
-  printQueue.push({ text, cls });
-  if (!queueRunning) { queueRunning = true; setTimeout(_drainQueue, lineDelay); }
-}
-
-function prBlank() { pr(); }
-function prRule()  { pr("─".repeat(52), "dim"); }
-
-// ─── Room definitions ──────────────────────────────────────────────────────────
-
-const ROOM_DEFS = {
+// ============================================================
+// ROOMS — All rooms, their exits, and interactive hotspots
+// ============================================================
+const ROOMS = {
   living_room: {
     name: "Living Room",
-    desc: [
-      "A dim living room. A sagging sofa and coffee table cast long shadows.",
-      "Dust covers everything. The front door is to the WEST — your way out.",
-      "A dark hallway leads NORTH. The kitchen is to the EAST."
+    bg: "living_room",
+    dark: false,
+    // Keyed by direction for adjacency; "_front_door" is a special exit
+    exits: { north: "hallway", east: "kitchen", west: "_front_door" },
+    hotspots: [
+      { id: "exit_hallway", label: "Hallway",      type: "exit",  dest: "hallway",      x: 430, y: 220, w: 140, h: 180, dir: "north" },
+      { id: "exit_kitchen", label: "Kitchen",      type: "exit",  dest: "kitchen",      x: 890, y: 260, w: 70,  h: 160, dir: "east"  },
+      { id: "exit_door",    label: "Front Door",   type: "exit",  dest: "_front_door",  x: 0,   y: 260, w: 75,  h: 160, dir: "west"  },
+      { id: "hide_sofa",    label: "Behind Sofa",  type: "hide",  x: 140, y: 320, w: 220, h: 80 },
+      { id: "hide_table",   label: "Coffee Table", type: "hide",  x: 370, y: 360, w: 160, h: 55 },
     ],
-    exits: { west: "_front_door", north: "hallway", east: "kitchen" },
-    hiding: ["behind the sofa", "under the coffee table"],
-    startItems: [],
-    startHidden: []
+    playerStart: { x: 480, y: 350 },
+    bilaxPos: { x: 200, y: 320 },
   },
   hallway: {
-    name: "Dark Hallway",
-    desc: [
-      "A long hallway cuts through the house. Floorboards creak under your feet.",
-      "A coat closet sits ajar to one side. The living room is SOUTH,",
-      "the master bedroom is EAST, and stairs lead UP to the attic."
-    ],
+    name: "Hallway",
+    bg: "hallway",
+    dark: false,
     exits: { south: "living_room", east: "master_bedroom", up: "attic" },
-    hiding: ["inside the coat closet"],
-    startItems: [],
-    startHidden: []
+    hotspots: [
+      { id: "exit_living",  label: "Living Room",    type: "exit", dest: "living_room",    x: 0,   y: 260, w: 75,  h: 160, dir: "south" },
+      { id: "exit_bedroom", label: "Master Bedroom", type: "exit", dest: "master_bedroom", x: 885, y: 260, w: 75,  h: 160, dir: "east"  },
+      { id: "exit_attic",   label: "Attic Stairs",   type: "exit", dest: "attic",          x: 400, y: 200, w: 160, h: 120, dir: "up"    },
+      { id: "hide_closet",  label: "Coat Closet",    type: "hide", x: 100, y: 280, w: 100, h: 130 },
+    ],
+    playerStart: { x: 480, y: 350 },
+    bilaxPos: { x: 700, y: 310 },
   },
   master_bedroom: {
     name: "Master Bedroom",
-    desc: [
-      "A large bedroom with a king bed. Clothes are strewn across the floor.",
-      "Moonlight slants through torn curtains. A crumpled note sits on the nightstand.",
-      "The hallway is to the WEST."
-    ],
+    bg: "master_bedroom",
+    dark: false,
     exits: { west: "hallway" },
-    hiding: ["under the bed", "inside the wardrobe"],
-    startItems: ["note"],
-    startHidden: []
+    hotspots: [
+      { id: "exit_hallway",  label: "Hallway",          type: "exit",    dest: "hallway",  x: 0,   y: 260, w: 75,  h: 160, dir: "west" },
+      { id: "item_note",     label: "Note",             type: "item",    item: "note",     x: 670, y: 345, w: 55, h: 45  },
+      { id: "hide_bed",      label: "Under the Bed",    type: "hide",    x: 420, y: 355, w: 250, h: 65 },
+      { id: "hide_wardrobe", label: "In the Wardrobe",  type: "hide",    x: 150, y: 265, w: 120, h: 155 },
+    ],
+    playerStart: { x: 480, y: 350 },
+    bilaxPos: { x: 700, y: 310 },
   },
   attic: {
-    name: "Dusty Attic",
-    dark: true,   // pitch black without the flashlight
-    desc: [
-      "A cramped attic crammed with boxes, old furniture, and forgotten things.",
-      "An old trunk sits somewhere in the dark. Stairs lead back DOWN to the hallway."
-    ],
-    descDark: [
-      "Total darkness. You can't see a thing up here.",
-      "You can feel the stairs behind you leading back DOWN."
-    ],
+    name: "Attic",
+    bg: "attic_dark",    // bg key overridden at render time if flashlight present
+    dark: true,
     exits: { down: "hallway" },
-    hiding: ["behind the old trunk"],
-    startItems: ["key"],
-    startHidden: ["key"]
+    hotspots: [
+      { id: "exit_hallway",  label: "Stairs Down",      type: "exit",    dest: "hallway",  x: 400, y: 365, w: 160, h: 55, dir: "down" },
+      { id: "examine_trunk", label: "Old Trunk",        type: "examine", x: 240, y: 300, w: 200, h: 110 },
+      // hidden: true means it only renders after examine_trunk reveals it
+      { id: "item_key",      label: "Brass Key",        type: "item",    item: "key",      x: 305, y: 325, w: 55, h: 45, hidden: true },
+      { id: "hide_trunk",    label: "Behind the Trunk", type: "hide",    x: 190, y: 315, w: 95, h: 100 },
+    ],
+    playerStart: { x: 480, y: 350 },
+    bilaxPos: { x: 200, y: 295 },
   },
   kitchen: {
     name: "Kitchen",
-    desc: [
-      "A small kitchen. A cracked window lets in thin moonlight.",
-      "Dirty dishes are stacked in the sink. A drawer sits beside the stove.",
-      "The living room is WEST. A pantry door is NORTH."
-    ],
+    bg: "kitchen",
+    dark: false,
     exits: { west: "living_room", north: "pantry" },
-    hiding: ["under the kitchen counter"],
-    startItems: ["flashlight"],
-    startHidden: ["flashlight"]  // revealed by searching / examining drawer
+    hotspots: [
+      { id: "exit_living",     label: "Living Room",    type: "exit",    dest: "living_room", x: 0,   y: 260, w: 75,  h: 160, dir: "west"  },
+      { id: "exit_pantry",     label: "Pantry",         type: "exit",    dest: "pantry",      x: 400, y: 195, w: 160, h: 120, dir: "north" },
+      { id: "examine_drawer",  label: "Kitchen Drawer", type: "examine", x: 600, y: 300, w: 155, h: 90 },
+      // hidden until examine_drawer is used
+      { id: "item_flashlight", label: "Flashlight",     type: "item",    item: "flashlight",  x: 640, y: 320, w: 55, h: 45, hidden: true },
+      { id: "hide_counter",    label: "Under Counter",  type: "hide",    x: 660, y: 355, w: 210, h: 65 },
+    ],
+    playerStart: { x: 480, y: 350 },
+    bilaxPos: { x: 200, y: 310 },
   },
   pantry: {
     name: "Pantry",
-    desc: [
-      "A narrow pantry lined with shelves of canned goods and dusty jars.",
-      "Something small skitters in the dark. The kitchen is SOUTH."
-    ],
+    bg: "pantry",
+    dark: false,
     exits: { south: "kitchen" },
-    hiding: ["squeezed behind the shelving"],
-    startItems: [],
-    startHidden: []
-  }
+    hotspots: [
+      { id: "exit_kitchen",  label: "Kitchen",         type: "exit",    dest: "kitchen",  x: 400, y: 365, w: 160, h: 55, dir: "south" },
+      { id: "hide_shelving", label: "Behind Shelves",  type: "hide",    x: 95,  y: 270, w: 120, h: 150 },
+    ],
+    playerStart: { x: 480, y: 350 },
+    bilaxPos: { x: 700, y: 305 },
+  },
 };
 
-const ITEM_DESC = {
-  key:        'An old brass key. Tarnished but solid. It must fit the front door.',
-  flashlight: 'A compact flashlight. It clicks on with a reassuring beam.',
-  note:       'A crumpled note in shaky handwriting.'
-};
+// ============================================================
+// SOUND STUBS — Replace with Audio() calls when files exist
+// ============================================================
+function playSound(name) {
+  // TODO: replace with actual Audio() calls when sound files are ready
+  console.log(`SOUND: ${name}`);
+}
+// Sounds needed: bilax_footstep, bilax_enter, bilax_leave, bilax_found_you,
+//   player_hide, player_unhide, item_pickup, door_unlock, door_open,
+//   room_transition, game_over, game_win, ambient_house
 
-// ─── State ────────────────────────────────────────────────────────────────────
+// ============================================================
+// ASSET LOADER
+// Tries /assets/<filename>; on error, stores a colored placeholder.
+// ============================================================
+const assetCache = {};        // assetKey -> Image | null
+const assetPlaceholders = {}; // assetKey -> { label, color }
 
-let rooms, gs;
-
-function buildRooms() {
-  const r = {};
-  for (const [id, def] of Object.entries(ROOM_DEFS)) {
-    r[id] = {
-      ...def,
-      items: [...def.startItems],
-      hidden: new Set(def.startHidden),
-      searched: false
-    };
-  }
-  return r;
+/** Kick off loading one asset; idempotent */
+function loadAsset(key, file, label, color) {
+  if (key in assetCache) return;
+  assetCache[key] = null; // loading sentinel
+  assetPlaceholders[key] = { label, color };
+  const img = new Image();
+  img.onload  = () => { assetCache[key] = img; };
+  img.onerror = () => { assetCache[key] = null; }; // keep placeholder
+  img.src = "/assets/" + file;
 }
 
-function newGame() {
-  rooms = buildRooms();
-  gs = {
-    room:          "living_room",
-    inv:           [],
-    hiding:        false,
-    gameOver:      false,
-    gameWon:       false,
-    bilax:         "attic",
-    turn:          0,
-    hideStreak:    0,      // consecutive HIDE commands; resets on any other action
-    listenSafe:    false,  // true after any LISTEN — next move destination is forbidden for Bilax
-    bilaxEntering: null    // room ID Bilax was entering (grace turn); null when inactive
+/**
+ * Draw an asset or its colored placeholder.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {string} key
+ * @param {number} x y w h
+ */
+function drawAsset(ctx, key, x, y, w, h) {
+  const img = assetCache[key];
+  if (img && img.complete && img.naturalWidth > 0) {
+    ctx.drawImage(img, x, y, w, h);
+    return;
+  }
+  // Placeholder rectangle
+  const ph = assetPlaceholders[key] || { label: key, color: "#333" };
+  ctx.fillStyle = ph.color;
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = "#666";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, w, h);
+
+  // Centered label with word-wrap
+  ctx.save();
+  ctx.font = "11px 'Courier New', monospace";
+  ctx.fillStyle = "rgba(255,255,255,0.75)";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const words = ph.label.split(" ");
+  const lineH = 14;
+  const lines = [];
+  let cur = "";
+  for (const word of words) {
+    const test = cur ? cur + " " + word : word;
+    if (ctx.measureText(test).width > w - 6) {
+      if (cur) lines.push(cur);
+      cur = word;
+    } else { cur = test; }
+  }
+  if (cur) lines.push(cur);
+  const startY = y + h / 2 - ((lines.length - 1) * lineH) / 2;
+  lines.forEach((ln, i) => ctx.fillText(ln, x + w / 2, startY + i * lineH));
+  ctx.restore();
+}
+
+/**
+ * Draw one frame from a horizontal sprite sheet.
+ * Falls back to drawAsset placeholder if image not loaded.
+ */
+function drawSpriteFrame(ctx, key, frameW, frameH, frameIdx, x, y, dw, dh) {
+  const img = assetCache[key];
+  if (img && img.complete && img.naturalWidth > 0) {
+    ctx.drawImage(img, frameIdx * frameW, 0, frameW, frameH, x, y, dw, dh);
+  } else {
+    drawAsset(ctx, key, x, y, dw, dh);
+  }
+}
+
+/** Kick off loading every asset in the manifest */
+function preloadAllAssets() {
+  const bgColors = {
+    living_room: "#1a1020", hallway: "#0e0e1a", master_bedroom: "#1a1018",
+    attic_dark: "#060608",  attic_lit: "#1a1610", kitchen: "#0f1a12",
+    pantry: "#0e0e14",      win_screen: "#091020",
+  };
+  for (const [k, def] of Object.entries(ASSET_MANIFEST.backgrounds)) {
+    loadAsset("bg_" + k, def.file, def.file.replace(".png","").replace(/_/g," "), bgColors[k] || "#111");
+  }
+  const spColors = {
+    player_idle:     "#1a4420", player_walk:    "#1a4420", player_hide:    "#0f2a14",
+    bilax_idle:      "#22001a", bilax_doorway:  "#33001a",
+    item_key:        "#886600", item_flashlight:"#2a3d55", item_note:      "#554030",
+  };
+  for (const [k, def] of Object.entries(ASSET_MANIFEST.sprites)) {
+    loadAsset("sp_" + k, def.file, def.file.replace(".png","").replace(/_/g," "), spColors[k] || "#333");
+  }
+}
+
+// ============================================================
+// GAME STATE
+// ============================================================
+
+/** Master state object — rebuilt by initGameState() */
+let S = {};
+
+function initGameState() {
+  S = {
+    // ---- Scene management ----
+    scene: "boot",          // "boot" | "game" | "gameover" | "win"
+
+    // ---- Bilax AI ----
+    room:         "living_room",    // player's current room
+    bilax:        "master_bedroom", // Bilax's current room
+    bilaxEntering: null,            // room ID Bilax is about to step into (grace turn)
+    listenSafe:   false,            // if true, Bilax skips moving this turn
+    hideStreak:   0,                // consecutive successful hide counts
+    hiding:       false,            // player is currently hidden
+
+    // ---- Inventory ----
+    inv: [],   // strings: "key" | "flashlight" | "note"
+
+    // ---- Per-room mutable state ----
+    roomState: buildRoomState(),
+
+    // ---- Player movement / animation ----
+    player: {
+      x: 480, y: 350,
+      targetX: 480, targetY: 350,
+      moving: false,
+      facing: 1,        // 1=right, -1=left
+      walkFrame: 0,
+      walkTimer: 0,
+      scale: 1.0,
+    },
+
+    // Action queued to fire once player reaches walk target
+    pendingAction: null,
+
+    // ---- Dialog system ----
+    dialogQueue: [],
+    dialog: null, // { text, timer, type:"normal"|"warn"|"danger" }
+
+    // ---- Room transition animation ----
+    transition: { active: false, dir: "out", frame: 0, nextRoom: null },
+
+    // ---- UI state ----
+    activeVerb:    null, // "LOOK AT"|"TAKE"|"HIDE"|"LISTEN"|"USE"|null
+    selectedItem:  null, // inventory item string selected for USE
+    hoveredHotspot:null,
+    verbCoin:      null, // { hotspot, x, y, verbs }
+
+    // ---- Global frame counter & animation ----
+    frame:   0,
+    _introShown: false,
+
+    // ---- Boot screen ----
+    bootFading: false,
+    bootAlpha:  0,
+
+    // ---- End screens ----
+    endAlpha: 0,
+    gameOver: false,
+    gameWon:  false,
   };
 }
 
-// ─── Bilax movement ───────────────────────────────────────────────────────────
-
-function bilaxNeighbors() {
-  return Object.values(rooms[gs.bilax].exits).filter(d => !d.startsWith("_"));
+/** Create per-room tracking objects */
+function buildRoomState() {
+  const rs = {};
+  for (const id of Object.keys(ROOMS)) {
+    rs[id] = {
+      revealedHotspots: new Set(), // hotspot IDs that started hidden but are now revealed
+      pickedUp:         new Set(), // item strings already collected from this room
+    };
+  }
+  return rs;
 }
 
-function moveBilax(extraForbidden = null) {
-  // Collect all rooms Bilax must not enter this turn
-  const forbidSet = new Set();
-  if (extraForbidden) forbidSet.add(extraForbidden);
-  if (gs.listenSafe)  forbidSet.add(gs.room);  // room where player listened (or just entered while listenSafe)
-  gs.listenSafe = false;  // consume here so it applies exactly once
+// ============================================================
+// ADJACENCY MAP — computed once from ROOMS exits
+// ============================================================
+function buildAdjacency() {
+  const adj = {};
+  for (const id of Object.keys(ROOMS)) adj[id] = new Set();
+  for (const [id, room] of Object.entries(ROOMS)) {
+    for (const dest of Object.values(room.exits)) {
+      if (dest.startsWith("_")) continue; // special pseudo-rooms
+      if (ROOMS[dest]) {
+        adj[id].add(dest);
+        adj[dest].add(id);
+      }
+    }
+  }
+  return adj;
+}
+const ADJ = buildAdjacency();
 
-  const prevRoom = gs.bilax;
+// ============================================================
+// BILAX AI — exact port of the text-game logic
+// ============================================================
 
-  if (Math.random() < 0.55) {
-    const nbrs = bilaxNeighbors().filter(r => !forbidSet.has(r));
-    if (nbrs.length) gs.bilax = nbrs[Math.floor(Math.random() * nbrs.length)];
-  } else if (forbidSet.has(gs.bilax)) {
-    // Bilax is sitting in a forbidden room — push him out
-    const elsewhere = bilaxNeighbors().filter(r => !forbidSet.has(r));
-    if (elsewhere.length) gs.bilax = elsewhere[Math.floor(Math.random() * elsewhere.length)];
+/**
+ * Move Bilax one step.
+ * @param {Set} extraForbidden  Rooms Bilax must not enter this turn.
+ */
+function moveBilax(extraForbidden) {
+  // listenSafe: freeze Bilax from entering the player's room
+  const forbid = new Set(extraForbidden);
+  if (S.listenSafe) forbid.add(S.room);
+
+  const neighbors = Array.from(ADJ[S.bilax] || []).filter(r => !forbid.has(r));
+
+  if (Math.random() < CONFIG.BILAX_MOVE_CHANCE && neighbors.length > 0) {
+    const target = neighbors[Math.floor(Math.random() * neighbors.length)];
+    if (target === S.room) {
+      // Bilax is stepping toward the player's room — grace turn
+      S.bilaxEntering = S.room;
+      playSound("bilax_footstep");
+    } else {
+      S.bilax = target;
+      S.bilaxEntering = null;
+      playSound("bilax_footstep");
+    }
+  } else {
+    S.bilaxEntering = null; // didn't move, clear any previous entering flag
   }
 
-  // Safety net: if Bilax is still in a forbidden room after either branch, force him out
-  if (forbidSet.has(gs.bilax)) {
-    const safe = bilaxNeighbors().filter(r => !forbidSet.has(r));
-    if (safe.length) gs.bilax = safe[Math.floor(Math.random() * safe.length)];
+  // Safety net: if Bilax somehow landed in a forbidden room, force him out
+  if (forbid.has(S.bilax)) {
+    const safeNbrs = Array.from(ADJ[S.bilax] || []).filter(r => !forbid.has(r));
+    if (safeNbrs.length > 0) {
+      S.bilax = safeNbrs[Math.floor(Math.random() * safeNbrs.length)];
+    }
   }
-
-  return prevRoom !== gs.bilax && gs.bilax === gs.room;
 }
 
-function bilaxAdjacent() {
-  return Object.values(rooms[gs.room].exits)
-    .filter(d => !d.startsWith("_"))
-    .includes(gs.bilax);
-}
-
+/**
+ * Compute hide success based on the current hideStreak.
+ * Returns "safe" | "hiding_safe" | "caught"
+ */
 function checkEncounter() {
-  if (gs.bilax !== gs.room) return "safe";
-  if (gs.hiding) {
-    const chances = [1.0, 0.80, 0.60, 0.50];
-    const prob = chances[Math.min(gs.hideStreak - 1, 3)];
-    if (Math.random() < prob) return "hiding_safe";
+  const inRoom = S.bilax === S.room || S.bilaxEntering === S.room;
+  if (!inRoom) return "safe";
+  if (S.hiding) {
+    const thresh = S.hideStreak === 1 ? 1.0
+                 : S.hideStreak === 2 ? 0.80
+                 : S.hideStreak === 3 ? 0.60
+                 : 0.50;
+    return Math.random() < thresh ? "hiding_safe" : "caught";
   }
   return "caught";
 }
 
-// ─── Room display ─────────────────────────────────────────────────────────────
-
-function visibleItems(roomId) {
-  const r = rooms[roomId];
-  return r.items.filter(i => !r.hidden.has(i));
-}
-
-function hasLight() {
-  return gs.inv.includes("flashlight");
-}
-
-function isRoomDark(roomId) {
-  return !!rooms[roomId].dark && !hasLight();
-}
-
-function describeRoom(roomId) {
-  const r = rooms[roomId];
-  prBlank();
-  pr("[ " + r.name + " ]", "system");
-
-  if (isRoomDark(roomId)) {
-    for (const line of r.descDark) pr(line, "dim");
-    return;
+/**
+ * Full encounter check — called after every action turn.
+ * Handles the bilaxEntering grace mechanic.
+ */
+function checkBilaxEncounter() {
+  if (S.bilaxEntering !== null) {
+    if (S.room === S.bilaxEntering) {
+      // Bilax steps in
+      S.bilax = S.room;
+      S.bilaxEntering = null;
+      const result = checkEncounter();
+      if (result === "hiding_safe") {
+        showDialog("Bilax looms over your hiding spot... then moves on.", "warn");
+        playSound("bilax_leave");
+        // Shuffle Bilax out of the room
+        const out = Array.from(ADJ[S.bilax] || []).filter(r => r !== S.room);
+        if (out.length > 0) S.bilax = out[Math.floor(Math.random() * out.length)];
+        S.hideStreak++;
+      } else if (result === "caught") {
+        triggerGameOver();
+      }
+    } else {
+      // Player fled before Bilax arrived
+      S.bilaxEntering = null;
+    }
+  } else {
+    // Normal encounter check (Bilax was already in room, or not)
+    if (checkEncounter() === "caught") triggerGameOver();
   }
-
-  for (const line of r.desc) pr(line);
-
-  const vis = visibleItems(roomId);
-  if (vis.length) pr("You see here: " + vis.join(", ") + ".", "warn");
-
-  if (r.hiding.length)
-    pr("You could hide " + r.hiding[0] + ".");
 }
 
-// ─── Win / lose ───────────────────────────────────────────────────────────────
-
-function caught() {
-  prBlank();
-  pr("████████████████████████████████████████████", "danger");
-  pr("  BILAX FOUND YOU.                          ", "danger");
-  pr("████████████████████████████████████████████", "danger");
-  prBlank();
-  pr("A massive shape lurches from the dark. Pale eyes fix on you.");
-  pr("Bilax exhales a rattling breath — and lunges.");
-  prBlank();
-  pr("GAME OVER.  Type RESTART to try again.", "warn");
-  gs.gameOver = true;
+/**
+ * End-of-turn processing: move Bilax (unless skipped), then check encounter.
+ * @param {boolean} skipMove  True when LISTEN is used (Bilax stays put)
+ */
+function doTurn(skipMove) {
+  if (S.gameOver || S.gameWon) return;
+  if (!skipMove) moveBilax(new Set());
+  S.listenSafe = false; // consumed
+  checkBilaxEncounter();
 }
 
+// ============================================================
+// GAME ACTIONS
+// ============================================================
+
+/** Enqueue a dialog line and start it if nothing is showing */
+function showDialog(text, type) {
+  S.dialogQueue.push({ text, type: type || "normal", timer: CONFIG.DIALOG_DURATION });
+  if (!S.dialog) advanceDialog();
+}
+
+/** Pop the next line from the queue into the active dialog */
+function advanceDialog() {
+  S.dialog = S.dialogQueue.length > 0 ? S.dialogQueue.shift() : null;
+}
+
+/** Transition to game-over state */
+function triggerGameOver() {
+  if (S.gameOver || S.gameWon) return;
+  S.gameOver  = true;
+  S.dialog    = null;
+  S.dialogQueue = [];
+  S.hiding    = false;
+  S.hideStreak = 0;
+  playSound("bilax_found_you");
+  playSound("game_over");
+  S.scene    = "gameover";
+  S.endAlpha = 0;
+}
+
+/** Transition to win state */
 function escaped() {
-  prBlank();
-  pr("╔══════════════════════════════════════════════╗", "title");
-  pr("║   YOU ESCAPED. BILAX NEVER CAUGHT YOU.      ║", "title");
-  pr("╚══════════════════════════════════════════════╝", "title");
-  prBlank();
-  pr("The brass key turns. The door swings open.");
-  pr("Cool night air rushes in. You slip outside and don't look back.");
-  prBlank();
-  pr("Congratulations!  Type RESTART to play again.", "system");
-  gs.gameWon = true;
+  if (S.gameOver || S.gameWon) return;
+  S.gameWon  = true;
+  S.dialog   = null;
+  S.dialogQueue = [];
+  playSound("door_unlock");
+  playSound("door_open");
+  playSound("game_win");
+  S.scene    = "win";
+  S.endAlpha = 0;
 }
 
-// ─── Post-action Bilax check ─────────────────────────────────────────────────
-function afterAction() { return true; }
+/** True when the flashlight is in inventory (lights up the attic) */
+function atticIsLit() { return S.inv.includes("flashlight"); }
 
-function checkBilaxEncounter(bilaxJustMoved) {
-  // ── Resolve grace turn: Bilax entered last turn, player had one chance ─────
-  if (gs.bilaxEntering) {
-    const enteringRoom = gs.bilaxEntering;
-    gs.bilaxEntering = null;
-    if (gs.room !== enteringRoom) {
-      // Player fled — safe, Bilax stays wherever he ended up
-      return true;
-    }
-    // Force Bilax into the room regardless of what moveBilax did — the warning was real
-    gs.bilax = gs.room;
-    const result = checkEncounter();
-    if (result === "hiding_safe") {
-      pr("Bilax steps inside... looms over your hiding spot... and moves on.", "warn");
-      const elsewhere = bilaxNeighbors().filter(r => r !== gs.room);
-      if (elsewhere.length) gs.bilax = elsewhere[Math.floor(Math.random() * elsewhere.length)];
-      pr("You hear heavy footsteps recede.", "warn");
-      return true;
-    }
-    // Didn't hide — caught
-    caught();
-    return false;
+/** Is a hotspot currently interactable? (not hidden, not already picked up) */
+function hotspotVisible(roomId, hs) {
+  const rs = S.roomState[roomId];
+  if (hs.type === "item") {
+    if (rs.pickedUp.has(hs.item)) return false;
+    if (hs.hidden && !rs.revealedHotspots.has(hs.id)) return false;
   }
-
-  // ── Normal encounter check ─────────────────────────────────────────────────
-  const result = checkEncounter();
-
-  if (result === "hiding_safe") {
-    pr("Bilax enters the room... you press yourself flat and hold your breath...", "danger");
-    pr("He sniffs the air and shuffles on.", "warn");
-    const elsewhere = bilaxNeighbors().filter(r => r !== gs.room);
-    if (elsewhere.length) gs.bilax = elsewhere[Math.floor(Math.random() * elsewhere.length)];
-    pr("You hear heavy footsteps recede.", "warn");
-    return true;
-  }
-
-  if (result === "caught") {
-    // Only grant grace if Bilax walked in this turn (not if player is already sharing a room)
-    if (bilaxJustMoved) {
-      pr("A shape darkens the doorway. BILAX has entered the room.", "danger");
-      pr("HIDE or FLEE — now!", "danger");
-      gs.bilaxEntering = gs.room;
-      return true;
-    }
-    caught();
-    return false;
-  }
-
   return true;
 }
 
-// ─── Commands ────────────────────────────────────────────────────────────────
+/** Execute a verb on a hotspot after the player has walked to it */
+function executeAction(verb, hotspot) {
+  if (!hotspot) { doTurn(false); return; }
 
-function cmdHelp() {
-  prBlank();
-  pr("═══════════════════ COMMANDS ═══════════════════", "system");
-  pr("  LOOK  / L                  Examine your surroundings");
-  pr("  GO [dir]  or just  N S E W U D   Move in a direction");
-  pr("  SEARCH                     Search the room for hidden items");
-  pr("  EXAMINE [thing] / X [thing]  Inspect something closely");
-  pr("  TAKE [item]                Pick up an item");
-  pr("  INVENTORY / I              List carried items");
-  pr("  HIDE                       Conceal yourself (lasts one turn)");
-  pr("  LISTEN                     Listen for Bilax");
-  pr("  USE [item]                 Use an item");
-  pr("  READ [item]                Read something");
-  pr("  RESTART                    Start a new game");
-  pr("════════════════════════════════════════════════", "system");
-  prBlank();
-  pr("TIP: Bilax can't find you as easily if you HIDE first.");
-}
+  // ---- WALK TO ----
+  if (verb === "WALK TO" && hotspot.type === "exit") {
+    handleExit(hotspot);
+    return;
+  }
 
-function cmdLook() {
-  describeRoom(gs.room);
-  if (gs.bilax === gs.room) pr("BILAX IS HERE — hide or run!", "danger");
-}
-
-function cmdGo(dir) {
-  const dirMap = { n:"north", s:"south", e:"east", w:"west", u:"up", d:"down" };
-  const full = dirMap[dir] || dir;
-  if (!full) { pr("Go where?", "warn"); return false; }
-
-  const exits = rooms[gs.room].exits;
-  const dest = exits[full];
-  if (!dest) { pr("You can't go that way.", "warn"); return false; }
-
-  if (dest === "_front_door") {
-    if (gs.inv.includes("key")) {
-      escaped();
+  // ---- LOOK AT ----
+  if (verb === "LOOK AT") {
+    const itemDesc = {
+      key:        "An old brass key. Might open the front door.",
+      flashlight: "A compact flashlight. Useful in the dark.",
+      note:       "A crumpled note: \"The key is in the attic trunk. DO NOT GO UP THERE.\""
+    };
+    if (hotspot.type === "item") {
+      showDialog(itemDesc[hotspot.item] || `You see the ${hotspot.label}.`, "normal");
     } else {
-      pr("The front door is locked. You need a key to open it.", "warn");
+      showDialog(`You study the ${hotspot.label} carefully.`, "normal");
     }
-    return true;
+    doTurn(false); return;
   }
 
-  // Player walked into Bilax's room — instant death
-  if (gs.bilax === dest) {
-    gs.room = dest;
-    pr("You step into the " + rooms[dest].name + " — Bilax is right there.", "danger");
-    caught();
-    return true;
+  // ---- TAKE ----
+  if (verb === "TAKE") {
+    if (hotspot.type !== "item") { showDialog("You can't take that.", "warn"); doTurn(false); return; }
+    const rs = S.roomState[S.room];
+    if (!rs.pickedUp.has(hotspot.item)) {
+      rs.pickedUp.add(hotspot.item);
+      S.inv.push(hotspot.item);
+      showDialog(`You pick up the ${hotspot.label}.`, "normal");
+      playSound("item_pickup");
+      if (hotspot.item === "flashlight") showDialog("The flashlight flickers on — better.", "normal");
+    }
+    doTurn(false); return;
   }
 
-  gs.room = dest;
-  gs.hiding = false;
-  gs.bilaxEntering = null;
-  describeRoom(gs.room);
-  return true;
-}
-
-function cmdSearch() {
-  if (isRoomDark(gs.room)) {
-    pr("It's too dark to search. You need a light source.", "warn");
-    return;
-  }
-  const r = rooms[gs.room];
-  if (r.searched) {
-    pr("You've already searched this room thoroughly.");
-    return;
-  }
-  r.searched = true;
-  pr("You carefully search the room...");
-
-  if (gs.room === "kitchen" && r.hidden.has("flashlight")) {
-    r.hidden.delete("flashlight");
-    prBlank();
-    pr("You rummage through the drawer beside the stove...", "warn");
-    pr("...a flashlight! You leave it here for now.", "warn");
-  } else if (gs.room === "attic" && r.hidden.has("key")) {
-    r.hidden.delete("key");
-    prBlank();
-    pr("You pry open the old trunk. Beneath a pile of dusty rags...", "warn");
-    pr("...a brass key! You leave it here for now.", "warn");
-  } else if (r.hidden.size > 0) {
-    const found = [...r.hidden];
-    r.hidden.clear();
-    pr("You found: " + found.join(", ") + ".", "warn");
-  } else {
-    pr("You don't find anything useful.");
-  }
-}
-
-function cmdExamine(target) {
-  if (!target || target === "room" || target === "around") {
-    describeRoom(gs.room);
-    return;
-  }
-  if (isRoomDark(gs.room)) {
-    pr("It's too dark to examine anything. You need a light source.", "warn");
-    return;
+  // ---- EXAMINE ----
+  if (verb === "EXAMINE") {
+    if (hotspot.id === "examine_trunk") {
+      if (!atticIsLit()) {
+        showDialog("It's pitch dark. You can't see a thing in this attic.", "warn");
+        doTurn(false); return;
+      }
+      S.roomState["attic"].revealedHotspots.add("item_key");
+      showDialog("You pry open the old trunk. Inside gleams a BRASS KEY!", "normal");
+      doTurn(false); return;
+    }
+    if (hotspot.id === "examine_drawer") {
+      S.roomState["kitchen"].revealedHotspots.add("item_flashlight");
+      showDialog("You rummage through the kitchen drawer and find a FLASHLIGHT!", "normal");
+      doTurn(false); return;
+    }
+    showDialog(`You examine the ${hotspot.label}. Nothing useful.`, "normal");
+    doTurn(false); return;
   }
 
-  if ((target === "drawer" || target === "stove" || target === "kitchen drawer")) {
-    if (gs.room !== "kitchen") { pr("There's no drawer here.", "warn"); return; }
-    const r = rooms["kitchen"];
-    if (r.hidden.has("flashlight")) {
-      r.hidden.delete("flashlight");
-      r.searched = true;
-      pr("You ease open the drawer. Under a pile of takeout menus — a flashlight!", "warn");
-    } else if (r.searched) {
-      pr("The drawer is empty — you already found what was inside.");
+  // ---- HIDE / STOP HIDING ----
+  if (verb === "HIDE" || verb === "HIDE HERE") {
+    if (!S.hiding) {
+      S.hiding = true;
+      S.hideStreak++;
+      showDialog(`You squeeze ${hotspot.label.toLowerCase()}. Don't breathe.`, "normal");
+      playSound("player_hide");
+    }
+    doTurn(false); return;
+  }
+  if (verb === "STOP HIDING") {
+    S.hiding = false;
+    S.hideStreak = 0;
+    showDialog("You step out from hiding.", "normal");
+    playSound("player_unhide");
+    doTurn(false); return;
+  }
+
+  // ---- LISTEN ----
+  if (verb === "LISTEN") {
+    S.listenSafe = true;
+    const bilaxName = ROOMS[S.bilax] ? ROOMS[S.bilax].name : "somewhere";
+    if (S.bilax === S.room) {
+      showDialog("You hear heavy breathing RIGHT IN THIS ROOM. BILAX IS HERE!", "danger");
+    } else if (ADJ[S.room] && ADJ[S.room].has(S.bilax)) {
+      showDialog(`You hear slow, deliberate footsteps... Bilax is in the ${bilaxName}.`, "warn");
     } else {
-      pr("A junk drawer full of takeout menus and batteries. Something might be buried in here.");
+      showDialog("Silence. Bilax seems far away for now.", "normal");
     }
+    doTurn(true); // Bilax does not move on LISTEN turns
     return;
   }
 
-  // Examine trunk in attic — reveals the key
-  if (target === "trunk") {
-    if (gs.room !== "attic") { pr("There's no trunk here.", "warn"); return; }
-    const r = rooms["attic"];
-    if (r.hidden.has("key")) {
-      r.hidden.delete("key");
-      r.searched = true;
-      pr("You pry open the old trunk. Under a pile of dusty rags — a brass key!", "warn");
-    } else if (r.searched) {
-      pr("The trunk is empty — you already found what was inside.");
-    } else {
-      pr("An old wooden trunk. It has a latch — something could be inside.");
-    }
-    return;
-  }
-
-  if (gs.inv.includes(target)) { pr(ITEM_DESC[target] || "It's a " + target + "."); return; }
-  const vis = visibleItems(gs.room);
-  if (vis.includes(target)) { pr(ITEM_DESC[target] || "It's a " + target + "."); return; }
-
-  const scenery = {
-    sofa: "A dusty sofa. You could squeeze behind it to hide.",
-    couch: "A dusty sofa. You could squeeze behind it to hide.",
-    door: "A heavy wooden front door. The lock looks solid — you need a key.",
-    "front door": "A heavy wooden front door. The lock looks solid — you need a key.",
-    window: "Cracked glass. Moonlight falls through in pale strips.",
-    bed: "A rumpled king bed. You could slide under it to hide.",
-    trunk: "An old wooden trunk. It has a latch — something could be inside.",
-    sink: "A pile of dirty dishes. Try not to knock anything over.",
-    dishes: "Stacked dirty dishes. Would make a terrible noise if disturbed.",
-    closet: "A coat closet, door ajar. Room enough to squeeze inside.",
-    wardrobe: "A tall wardrobe. You could hide inside and pull the door shut.",
-    shelves: "Metal shelving loaded with cans. You could wedge yourself behind.",
-    boxes: "Cardboard boxes stacked nearly to the ceiling.",
-    nightstand: "A dusty nightstand. A crumpled note rests on top.",
-    note: ITEM_DESC["note"] + " It reads: \"Flashlight in kitchen DRAWER. Key in attic TRUNK. -M\"",
-    curtains: "Torn curtains. Moonlight bleeds through.",
-  };
-
-  const s = scenery[target];
-  if (s) { pr(s); return; }
-
-  pr("You don't see anything special about that.", "warn");
-}
-
-function cmdTake(item) {
-  if (!item) { pr("Take what?", "warn"); return; }
-  if (isRoomDark(gs.room)) {
-    pr("It's too dark to find anything. You need a light source.", "warn");
-    return;
-  }
-  const r = rooms[gs.room];
-
-  if (!r.items.includes(item)) {
-    pr("There's no " + item + " here.", "warn");
-    return;
-  }
-  if (r.hidden.has(item)) {
-    pr("You'll have to find it first. Try SEARCH or EXAMINE something.", "warn");
-    return;
-  }
-
-  r.items = r.items.filter(i => i !== item);
-  gs.inv.push(item);
-  pr("You pick up the " + item + ".");
-}
-
-function cmdInventory() {
-  if (!gs.inv.length) pr("You're not carrying anything.");
-  else pr("You're carrying: " + gs.inv.join(", ") + ".");
-}
-
-function cmdHide() {
-  const r = rooms[gs.room];
-  const spot = r.hiding[Math.floor(Math.random() * r.hiding.length)];
-  gs.hiding = true;
-  if (isRoomDark(gs.room)) {
-    pr("You feel your way " + spot + " and hold perfectly still.");
-  } else {
-    pr("You slip " + spot + " and hold perfectly still.");
-  }
-}
-
-function cmdListen() {
-  if (gs.bilax === gs.room) {
-    pr("Bilax is IN THIS ROOM with you. Don't move — hide!", "danger");
-    return;
-  }
-  if (bilaxAdjacent()) {
-    gs.listenSafe = true;
-    const dirs = Object.entries(rooms[gs.room].exits)
-      .filter(([, v]) => v === gs.bilax)
-      .map(([k]) => k.toUpperCase());
-    const bilaxRoomName = rooms[gs.bilax].name;
-    pr("You hear slow, heavy footsteps... Bilax is in the " + bilaxRoomName +
-       " — just to the " + (dirs[0] || "nearby") + ".", "warn");
-  } else {
-    gs.listenSafe = true;
-    pr("You hold your breath and listen.");
-    pr("Nothing. Bilax is somewhere else in the house.");
-  }
-}
-
-function cmdUse(item) {
-  if (!item) { pr("Use what?", "warn"); return; }
-  if (!gs.inv.includes(item)) { pr("You don't have a " + item + ".", "warn"); return; }
-
-  if (item === "key") {
-    if (gs.room === "living_room") pr("The front door is WEST. Go WEST to use the key.");
-    else pr("There's no lock to use the key on here.");
-    return;
-  }
-  if (item === "flashlight") {
-    pr("You click the flashlight on. The beam sweeps the room.");
-    pr("(The flashlight is on whenever you carry it.)");
-    return;
-  }
-  pr("Not sure how to use that right now.", "warn");
-}
-
-function cmdRead(item) {
-  if (!item) { pr("Read what?", "warn"); return; }
-  if (item === "note") {
-    const inInv = gs.inv.includes("note");
-    const inRoom = visibleItems(gs.room).includes("note");
-    if (!inInv && !inRoom) { pr("You don't have a note to read.", "warn"); return; }
-    prBlank();
-    pr('The note reads:', "system");
-    pr('  "Flashlight is in the kitchen DRAWER.');
-    pr('   Spare key is in the attic TRUNK — it\'s pitch black up there.');
-    pr('   Don\'t let Bilax hear you. —M"');
-    prBlank();
-    return;
-  }
-  pr("You can't read that.", "warn");
-}
-
-// ─── Input handling ───────────────────────────────────────────────────────────
-
-const cmdInput = document.getElementById("cmdInput");
-const history  = [];
-let histIdx    = -1;
-let booted     = false;
-
-function dispatch(raw) {
-  const input = raw.trim().toLowerCase();
-  if (!input) return;
-
-  flushQueue();
-
-  pr("> " + raw, "echo");
-
-  if (gs.gameOver || gs.gameWon) {
-    if (input === "restart" || input === "r") { startGame(); return; }
-    pr("Type RESTART to play again.", "warn");
-    return;
-  }
-
-  const [cmd, ...rest] = input.split(/\s+/);
-  const args = rest.join(" ");
-  gs.turn++;
-
-  lineDelay = 30;
-
-  switch (cmd) {
-    case "help":  case "?":           cmdHelp(); gs.turn--; return;
-    case "look":  case "l":           cmdLook();         break;
-    case "search":                    cmdSearch();       break;
-    case "examine": case "x":
-    case "inspect":                   cmdExamine(args);  break;
-    case "take":  case "get":
-    case "grab":  case "pick":        cmdTake(args);     break;
-    case "inventory": case "inv":
-    case "i":                         cmdInventory();    break;
-    case "hide":                      cmdHide();         break;
-    case "listen":                    cmdListen();       break;
-    case "use":                       cmdUse(args);      break;
-    case "read":                      cmdRead(args);     break;
-    case "restart":                   startGame();       return;
-    case "go":    case "move":
-    case "walk":  case "run":         if (!cmdGo(args))    { gs.turn--; return; } break;
-    case "north": case "n":           if (!cmdGo("north")) { gs.turn--; return; } break;
-    case "south": case "s":           if (!cmdGo("south")) { gs.turn--; return; } break;
-    case "east":  case "e":           if (!cmdGo("east"))  { gs.turn--; return; } break;
-    case "west":  case "w":           if (!cmdGo("west"))  { gs.turn--; return; } break;
-    case "up":    case "u":           if (!cmdGo("up"))    { gs.turn--; return; } break;
-    case "down":  case "d":           if (!cmdGo("down"))  { gs.turn--; return; } break;
-    default:
-      pr("Unknown command. Type HELP for a list of commands.", "warn");
-      gs.turn--;
-      return;
-  }
-
-  if (!gs.gameOver && !gs.gameWon) {
-    if (cmd === "hide") {
-      gs.hideStreak++;
-    } else {
-      gs.hideStreak = 0;
-      gs.hiding = false;
-    }
-    const movedCmds = new Set(["go","move","walk","run","north","n","south","s","east","e","west","w","up","u","down","d"]);
-    const forbidRoom = movedCmds.has(cmd) ? gs.room : null;
-    // On any listen, Bilax doesn't move — info stays accurate and next move destination is safe.
-    if (cmd === "listen") {
-      // Just check if Bilax is already here (don't move him)
-      checkBilaxEncounter(false);
-    } else {
-      const bilaxJustMoved = moveBilax(forbidRoom);
-      checkBilaxEncounter(bilaxJustMoved);
-    }
-  }
-}
-
-cmdInput.addEventListener("keydown", e => {
-  if (e.key === "Enter") {
-    if (!booted) {
-      booted = true;
-      cmdInput.placeholder = "";
-      lineDelay = 70;
-      startGame();
+  // ---- USE (inventory item on hotspot) ----
+  if (verb === "USE" && S.selectedItem) {
+    if (S.selectedItem === "key" && hotspot.id === "exit_door") {
+      showDialog("You slide the key into the lock — CLICK. The front door swings open!", "normal");
+      doTurn(false);
+      setTimeout(escaped, 1600);
       return;
     }
-
-    if (queueRunning) {
-      flushQueue();
-      return;
+    if (S.selectedItem === "flashlight" && S.room === "attic") {
+      showDialog("You sweep the flashlight beam across the attic.", "normal");
+      doTurn(false); return;
     }
-
-    const val = cmdInput.value;
-    if (val.trim()) { history.unshift(val); if (history.length > 80) history.pop(); }
-    histIdx = -1;
-    cmdInput.value = "";
-    dispatch(val);
-
-  } else if (e.key === "ArrowUp") {
-    e.preventDefault();
-    if (histIdx < history.length - 1) cmdInput.value = history[++histIdx];
-  } else if (e.key === "ArrowDown") {
-    e.preventDefault();
-    if (histIdx > 0) { cmdInput.value = history[--histIdx]; }
-    else { histIdx = -1; cmdInput.value = ""; }
+    showDialog("That doesn't seem to do anything.", "warn");
+    doTurn(false); return;
   }
+
+  showDialog("You can't do that here.", "warn");
+  doTurn(false);
+}
+
+/** Handle clicking an exit hotspot */
+function handleExit(hotspot) {
+  if (hotspot.dest === "_front_door") {
+    if (S.inv.includes("key")) {
+      showDialog("You unlock the front door with the brass key!", "normal");
+      doTurn(false);
+      setTimeout(escaped, 1600);
+    } else {
+      showDialog("The front door is locked. You need to find a key.", "warn");
+      doTurn(false);
+    }
+    return;
+  }
+  beginTransition(hotspot.dest);
+}
+
+/** Start a room-transition fade-out/in animation */
+function beginTransition(nextRoom) {
+  if (S.transition.active) return;
+  S.transition = { active: true, dir: "out", frame: 0, nextRoom };
+  S.hiding      = false;
+  S.hideStreak  = 0;
+  S.pendingAction = null;
+  S.verbCoin    = null;
+  playSound("room_transition");
+}
+
+/** Mid-transition: actually swap rooms and reposition the player */
+function changeRoom(nextRoom) {
+  S.room = nextRoom;
+  const rd = ROOMS[nextRoom];
+  S.player.x = rd.playerStart.x;
+  S.player.y = rd.playerStart.y;
+  S.player.targetX = rd.playerStart.x;
+  S.player.targetY = rd.playerStart.y;
+  S.player.moving  = false;
+  S.dialog         = null;
+  S.dialogQueue    = [];
+  S.verbCoin       = null;
+  S.activeVerb     = null;
+
+  if (S.bilax === nextRoom) playSound("bilax_enter");
+  doTurn(false); // triggers Bilax move & encounter check on arrival
+}
+
+// ============================================================
+// CANVAS & MOUSE
+// ============================================================
+const canvas = document.getElementById("gameCanvas");
+const ctx    = canvas.getContext("2d");
+let mouse    = { x: 0, y: 0 };
+
+canvas.addEventListener("mousemove", e => {
+  const r = canvas.getBoundingClientRect();
+  mouse.x = (e.clientX - r.left) * (CONFIG.WIDTH  / r.width);
+  mouse.y = (e.clientY - r.top)  * (CONFIG.HEIGHT / r.height);
+  if (S.scene === "game") updateHover();
 });
 
-document.addEventListener("click", () => cmdInput.focus());
+canvas.addEventListener("click",       e => { e.preventDefault(); handleClick(e);      });
+canvas.addEventListener("contextmenu", e => { e.preventDefault(); handleRightClick(e); });
 
-// ─── Boot sequence ────────────────────────────────────────────────────────────
+/** Recompute hovered hotspot and cursor style */
+function updateHover() {
+  if (S.verbCoin) { canvas.style.cursor = "pointer"; return; }
 
-function printIntro() {
-  pr("╔══════════════════════════════════════════════════╗", "title");
-  pr("║                                                  ║", "title");
-  pr("║   B  I  L  A  X  1.8  —  A Terminal Adventure   ║", "title");
-  pr("║                                                  ║", "title");
-  pr("╚══════════════════════════════════════════════════╝", "title");
-  prBlank();
-  pr("You open your eyes in a dark house that isn't yours.", "warn");
-  pr("Something is in here with you. Something called BILAX.");
-  prBlank();
-  pr("Your goal:  find a key and unlock the front door to escape.");
-  pr("            Bilax hunts by sound. Be careful what you do.");
-  prBlank();
-  pr("Type  HELP  to see all commands.", "system");
-  pr("Type  LOOK  to examine your surroundings.", "system");
-  prBlank();
-  prRule();
+  if (mouse.y >= CONFIG.GAME_HEIGHT) {
+    const slotHit = getInventorySlotAt(mouse.x, mouse.y);
+    const verbHit = getVerbButtonAt(mouse.x, mouse.y);
+    canvas.style.cursor = (slotHit !== null || verbHit) ? "pointer" : "default";
+    S.hoveredHotspot = null;
+    return;
+  }
+
+  const hs = getHotspotAt(mouse.x, mouse.y);
+  S.hoveredHotspot = hs;
+  canvas.style.cursor = hs ? "pointer" : "crosshair";
 }
 
-function startGame() {
-  output.innerHTML = "";
-  printQueue = [];
-  queueRunning = false;
-  newGame();
-  lineDelay = 70;
-  printIntro();
-  describeRoom(gs.room);
+function handleClick(e) {
+  const r  = canvas.getBoundingClientRect();
+  const mx = (e.clientX - r.left) * (CONFIG.WIDTH  / r.width);
+  const my = (e.clientY - r.top)  * (CONFIG.HEIGHT / r.height);
+
+  // -- Boot --
+  if (S.scene === "boot") { if (!S.bootFading) S.bootFading = true; return; }
+
+  // -- End screens --
+  if (S.scene === "gameover" || S.scene === "win") {
+    if (isRestartButtonHit(mx, my)) restartGame();
+    return;
+  }
+
+  if (S.scene !== "game" || S.transition.active || S.gameOver || S.gameWon) return;
+
+  // -- Verb coin open --
+  if (S.verbCoin) {
+    const hit = getVerbCoinHit(mx, my);
+    const coinHotspot = S.verbCoin.hotspot; // capture before clearing
+    S.verbCoin = null;
+    canvas.style.cursor = "crosshair";
+    if (hit) walkToHotspot(coinHotspot, hit);
+    return;
+  }
+
+  // Panel area
+  if (my >= CONFIG.GAME_HEIGHT) {
+    const slotIdx = getInventorySlotAt(mx, my);
+    if (slotIdx !== null && slotIdx < S.inv.length) {
+      const item = S.inv[slotIdx];
+      if (S.selectedItem === item) { S.selectedItem = null; S.activeVerb = null; }
+      else { S.selectedItem = item; S.activeVerb = "USE"; }
+      return;
+    }
+    const verb = getVerbButtonAt(mx, my);
+    if (verb) {
+      if (verb === "LISTEN") { executeAction("LISTEN", { id: "_listen", label: "", type: "meta" }); return; }
+      S.activeVerb   = (S.activeVerb === verb) ? null : verb;
+      if (verb !== "USE") S.selectedItem = null;
+      return;
+    }
+    return;
+  }
+
+  // Game area
+  const hs = getHotspotAt(mx, my);
+  if (hs) {
+    if (S.activeVerb) {
+      const v = S.activeVerb;
+      S.activeVerb  = null;
+      S.selectedItem = null;
+      walkToHotspot(hs, v);
+    } else if (hs.type === "exit") {
+      walkToHotspot(hs, "WALK TO");
+    } else {
+      openVerbCoin(hs, mx, my);
+    }
+  } else {
+    // Free walk
+    const tx = Math.max(20,  Math.min(940, mx));
+    const ty = Math.max(CONFIG.WALK_Y_MIN, Math.min(CONFIG.WALK_Y_MAX, my));
+    S.player.targetX = tx;
+    S.player.targetY = ty;
+    S.player.moving  = true;
+    S.pendingAction  = null;
+    if (S.hiding) {
+      S.hiding = false; S.hideStreak = 0;
+      showDialog("You step out of hiding.", "normal");
+      playSound("player_unhide");
+    }
+  }
 }
 
-cmdInput.placeholder = "PRESS  ENTER  TO  BEGIN";
-cmdInput.focus();
+function handleRightClick(e) {
+  const r  = canvas.getBoundingClientRect();
+  const mx = (e.clientX - r.left) * (CONFIG.WIDTH  / r.width);
+  const my = (e.clientY - r.top)  * (CONFIG.HEIGHT / r.height);
+  if (S.scene !== "game" || S.transition.active) return;
+  if (my >= CONFIG.GAME_HEIGHT) return;
+  const hs = getHotspotAt(mx, my);
+  if (hs) openVerbCoin(hs, mx, my);
+  else S.verbCoin = null;
+}
+
+/** Queue a walk-then-action */
+function walkToHotspot(hs, verb) {
+  const tx = Math.max(20, Math.min(940, hs.x + hs.w / 2));
+  const ty = Math.max(CONFIG.WALK_Y_MIN, Math.min(CONFIG.WALK_Y_MAX, hs.y + hs.h / 2));
+  S.player.targetX = tx;
+  S.player.targetY = ty;
+  S.player.moving  = true;
+  S.pendingAction  = { verb, hotspot: hs };
+  if (S.hiding) { S.hiding = false; S.hideStreak = 0; playSound("player_unhide"); }
+}
+
+/** Open the radial verb-coin menu */
+function openVerbCoin(hs, x, y) {
+  const verbs = getVerbsForHotspot(hs);
+  S.verbCoin = { hotspot: hs, x, y, verbs };
+}
+
+function getVerbsForHotspot(hs) {
+  if (hs.type === "exit")    return ["WALK TO"];
+  if (hs.type === "item")    return S.selectedItem ? ["LOOK AT","TAKE","USE"] : ["LOOK AT","TAKE"];
+  if (hs.type === "examine") return ["EXAMINE"];
+  if (hs.type === "hide")    return [S.hiding ? "STOP HIDING" : "HIDE HERE"];
+  return ["LOOK AT"];
+}
+
+// ============================================================
+// HIT TESTING HELPERS
+// ============================================================
+
+function getHotspotAt(mx, my) {
+  if (my >= CONFIG.GAME_HEIGHT) return null;
+  const hotspots = ROOMS[S.room].hotspots;
+  for (let i = hotspots.length - 1; i >= 0; i--) {
+    const hs = hotspots[i];
+    if (!hotspotVisible(S.room, hs)) continue;
+    if (mx >= hs.x && mx <= hs.x + hs.w && my >= hs.y && my <= hs.y + hs.h) return hs;
+  }
+  return null;
+}
+
+/** Returns slot index 0-5, or null */
+function getInventorySlotAt(mx, my) {
+  const slotSz = 48, gap = 12, startX = 16;
+  const startY = CONFIG.GAME_HEIGHT + (CONFIG.PANEL_HEIGHT - slotSz) / 2;
+  for (let i = 0; i < 6; i++) {
+    const sx = startX + i * (slotSz + gap);
+    if (mx >= sx && mx <= sx + slotSz && my >= startY && my <= startY + slotSz) return i;
+  }
+  return null;
+}
+
+// Verb button layout constants
+const VERB_LABELS  = ["LOOK", "TAKE", "HIDE", "LISTEN", "USE"];
+const VERB_ACTIONS = { LOOK:"LOOK AT", TAKE:"TAKE", HIDE:"HIDE", LISTEN:"LISTEN", USE:"USE" };
+const VERB_BTN_W   = 80, VERB_BTN_H = 32, VERB_BTN_GAP = 10, VERB_BTN_START_X = 500;
+
+function getVerbButtonAt(mx, my) {
+  const startY = CONFIG.GAME_HEIGHT + (CONFIG.PANEL_HEIGHT - VERB_BTN_H) / 2;
+  for (let i = 0; i < VERB_LABELS.length; i++) {
+    const bx = VERB_BTN_START_X + i * (VERB_BTN_W + VERB_BTN_GAP);
+    if (mx >= bx && mx <= bx + VERB_BTN_W && my >= startY && my <= startY + VERB_BTN_H) {
+      return VERB_ACTIONS[VERB_LABELS[i]];
+    }
+  }
+  return null;
+}
+
+/** Returns the verb string for a coin button if (mx,my) hits it, else null */
+function getVerbCoinHit(mx, my) {
+  if (!S.verbCoin) return null;
+  const { x, y, verbs } = S.verbCoin;
+  const r = 72, bw = 94, bh = 28;
+  for (let i = 0; i < verbs.length; i++) {
+    const angle = (i / verbs.length) * Math.PI * 2 - Math.PI / 2;
+    const bx = x + Math.cos(angle) * r;
+    const by = y + Math.sin(angle) * r;
+    if (mx >= bx - bw/2 && mx <= bx + bw/2 && my >= by - bh/2 && my <= by + bh/2) return verbs[i];
+  }
+  return null;
+}
+
+function isRestartButtonHit(mx, my) {
+  return mx >= CONFIG.WIDTH/2 - 100 && mx <= CONFIG.WIDTH/2 + 100 &&
+         my >= CONFIG.HEIGHT/2 + 60  && my <= CONFIG.HEIGHT/2 + 104;
+}
+
+// ============================================================
+// RENDER HELPERS
+// ============================================================
+
+/** Rounded rectangle path helper */
+function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);    ctx.quadraticCurveTo(x+w, y,   x+w, y+r);
+  ctx.lineTo(x+w, y+h-r);  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h);    ctx.quadraticCurveTo(x,   y+h, x, y+h-r);
+  ctx.lineTo(x, y+r);      ctx.quadraticCurveTo(x,   y,   x+r, y);
+  ctx.closePath();
+  if (fill)   { ctx.fillStyle   = fill;   ctx.fill();   }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.stroke(); }
+}
+
+/** Compute player draw scale from Y position (perspective depth) */
+function scaleFory(y) {
+  const t = (y - CONFIG.WALK_Y_MIN) / (CONFIG.WALK_Y_MAX - CONFIG.WALK_Y_MIN);
+  return CONFIG.PLAYER_SCALE_MIN + Math.max(0, Math.min(1, t)) * (CONFIG.PLAYER_SCALE_MAX - CONFIG.PLAYER_SCALE_MIN);
+}
+
+// ============================================================
+// SCENE: BOOT
+// ============================================================
+function renderBoot() {
+  // Black base
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
+
+  // Subtle green noise
+  ctx.fillStyle = "rgba(0,40,0,0.35)";
+  for (let i = 0; i < 60; i++) {
+    ctx.fillRect(Math.random()*CONFIG.WIDTH, Math.random()*CONFIG.HEIGHT, Math.random()*3+1, 1);
+  }
+
+  // Title glow pulse
+  const glow = 0.55 + 0.45 * Math.sin(S.frame * 0.04);
+  ctx.save();
+  ctx.shadowColor = "#00ff44";
+  ctx.shadowBlur  = 24 * glow;
+  ctx.font = "bold 96px 'Courier New', monospace";
+  ctx.fillStyle = "#00ff44";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("BILAX", CONFIG.WIDTH/2, CONFIG.HEIGHT/2 - 65);
+
+  ctx.shadowBlur = 10;
+  ctx.font = "22px 'Courier New', monospace";
+  ctx.fillStyle = "#77cc77";
+  ctx.fillText("— A Point & Click Adventure —", CONFIG.WIDTH/2, CONFIG.HEIGHT/2 + 5);
+
+  ctx.shadowBlur = 0;
+  ctx.font = "14px 'Courier New', monospace";
+  const blinkA = 0.35 + 0.65 * Math.abs(Math.sin(S.frame * 0.065));
+  ctx.fillStyle = `rgba(100,220,100,${blinkA})`;
+  ctx.fillText("CLICK ANYWHERE TO BEGIN", CONFIG.WIDTH/2, CONFIG.HEIGHT/2 + 68);
+
+  ctx.font = "11px 'Courier New', monospace";
+  ctx.fillStyle = "#2a5a2a";
+  ctx.fillText("v1.8", CONFIG.WIDTH/2, CONFIG.HEIGHT - 18);
+  ctx.restore();
+
+  // Fade-out transition to game
+  if (S.bootFading) {
+    S.bootAlpha = Math.min(1, S.bootAlpha + 0.04);
+    ctx.fillStyle = `rgba(0,0,0,${S.bootAlpha})`;
+    ctx.fillRect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
+    if (S.bootAlpha >= 1) {
+      S.scene     = "game";
+      S.bootAlpha = 0;
+      playSound("ambient_house");
+    }
+  }
+}
+
+// ============================================================
+// SCENE: GAME
+// ============================================================
+function renderGame() {
+  renderBackground();
+  renderFloorItems();
+  renderBilax();
+  renderPlayer();
+  if (S.bilaxEntering === S.room) { renderDangerVignette(); renderBilaxDoorway(); }
+  renderHotspotHighlight();
+  renderDialog();
+  renderPanel();
+  renderHUD();
+  if (S.verbCoin) renderVerbCoin();
+  if (S.transition.active) renderTransition();
+}
+
+/** Draw room background (with attic dark/lit logic) */
+function renderBackground() {
+  let bgKey;
+  if (S.room === "attic") {
+    bgKey = atticIsLit() ? "bg_attic_lit" : "bg_attic_dark";
+  } else {
+    bgKey = "bg_" + ROOMS[S.room].bg;
+  }
+  drawAsset(ctx, bgKey, 0, 0, CONFIG.WIDTH, CONFIG.GAME_HEIGHT);
+
+  // Dark overlay in unlit attic (reinforces pitch-black feel even with placeholder)
+  if (S.room === "attic" && !atticIsLit()) {
+    ctx.fillStyle = "rgba(0,0,0,0.74)";
+    ctx.fillRect(0, 0, CONFIG.WIDTH, CONFIG.GAME_HEIGHT);
+  }
+}
+
+/** Draw world-space item sprites for items not yet picked up */
+function renderFloorItems() {
+  const hotspots = ROOMS[S.room].hotspots;
+  for (const hs of hotspots) {
+    if (hs.type !== "item") continue;
+    if (!hotspotVisible(S.room, hs)) continue;
+    const iw = 32, ih = 32;
+    const ix = hs.x + hs.w/2 - iw/2;
+    const iy = hs.y + hs.h/2 - ih/2;
+    const bob = Math.sin(S.frame * 0.07 + hs.x * 0.01) * 3;
+    drawAsset(ctx, "sp_item_" + hs.item, ix, iy + bob, iw, ih);
+    ctx.font = CONFIG.FONT_SMALL;
+    ctx.fillStyle = CONFIG.COLORS.text;
+    ctx.textAlign = "center";
+    ctx.fillText(hs.label, ix + iw/2, iy + ih + 14 + bob);
+    ctx.textAlign = "left";
+  }
+}
+
+/** Draw Bilax monster if he is present (and not in doorway state) */
+function renderBilax() {
+  if (S.bilax !== S.room) return;
+  if (S.bilaxEntering === S.room) return; // handled by renderBilaxDoorway
+  const pos = ROOMS[S.room].bilaxPos;
+  const bw = 80, bh = 120;
+  const pulse = 0.25 + 0.2 * Math.sin(S.frame * 0.12);
+  ctx.save();
+  ctx.shadowColor = "#ff0000";
+  ctx.shadowBlur  = 30 * pulse;
+  drawAsset(ctx, "sp_bilax_idle", pos.x - bw/2, pos.y - bh, bw, bh);
+  ctx.restore();
+
+  ctx.font = "bold 14px 'Courier New', monospace";
+  ctx.fillStyle = CONFIG.COLORS.danger;
+  ctx.textAlign = "center";
+  ctx.fillText("⚠  BILAX IS HERE — HIDE OR FLEE  ⚠", CONFIG.WIDTH/2, 20);
+  ctx.textAlign = "left";
+}
+
+/** Draw Bilax silhouette appearing in doorway */
+function renderBilaxDoorway() {
+  const bw = 68, bh = 108;
+  const bx = CONFIG.WIDTH - bw - 8;
+  const by = CONFIG.GAME_HEIGHT - bh - 8;
+  ctx.save();
+  ctx.globalAlpha = 0.65 + 0.35 * Math.abs(Math.sin(S.frame * 0.1));
+  drawAsset(ctx, "sp_bilax_doorway", bx, by, bw, bh);
+  ctx.restore();
+
+  ctx.font = "bold 14px 'Courier New', monospace";
+  ctx.fillStyle = CONFIG.COLORS.warn;
+  ctx.textAlign = "center";
+  ctx.fillText("BILAX APPROACHES — HIDE NOW!", CONFIG.WIDTH/2, 20);
+  ctx.textAlign = "left";
+}
+
+/** Pulsing red border vignette when Bilax is about to enter */
+function renderDangerVignette() {
+  const pulse = 0.3 + 0.7 * Math.abs(Math.sin(S.frame * CONFIG.DANGER_PULSE_SPEED * 3));
+  ctx.save();
+  ctx.strokeStyle = `rgba(255,0,0,${pulse})`;
+  ctx.lineWidth   = 10;
+  ctx.strokeRect(0, 0, CONFIG.WIDTH, CONFIG.GAME_HEIGHT);
+  ctx.restore();
+}
+
+/** Subtle dashed outline + label for the hovered hotspot */
+function renderHotspotHighlight() {
+  const hs = S.hoveredHotspot;
+  if (!hs) return;
+  ctx.save();
+  ctx.strokeStyle = "rgba(180,255,180,0.45)";
+  ctx.lineWidth   = 2;
+  ctx.setLineDash([4, 5]);
+  ctx.strokeRect(hs.x, hs.y, hs.w, hs.h);
+  ctx.setLineDash([]);
+  ctx.font      = CONFIG.FONT_SMALL;
+  ctx.fillStyle = "rgba(180,255,180,0.9)";
+  ctx.textAlign = "center";
+  ctx.fillText(hs.label, hs.x + hs.w/2, hs.y - 5);
+  ctx.textAlign = "left";
+  ctx.restore();
+}
+
+/** Draw player character with walk animation and depth scaling */
+function renderPlayer() {
+  const p = S.player;
+  const sc = scaleFory(p.y);
+  const dw = 64 * sc, dh = 96 * sc;
+  const px = p.x - dw/2, py = p.y - dh;
+
+  ctx.save();
+
+  if (S.hiding) {
+    // Semi-transparent crouching sprite
+    ctx.globalAlpha = 0.55;
+    drawAsset(ctx, "sp_player_hide", px, py + dh * 0.25, dw * 0.82, dh * 0.75);
+    ctx.globalAlpha = 1;
+    ctx.font = CONFIG.FONT_SMALL;
+    ctx.fillStyle = "#88ff88";
+    ctx.textAlign = "center";
+    ctx.fillText("(hiding)", p.x, py - 4);
+    ctx.textAlign = "left";
+  } else if (p.moving) {
+    // Walk animation — flip horizontally when moving left
+    p.walkTimer++;
+    if (p.walkTimer >= 8) { p.walkTimer = 0; p.walkFrame = (p.walkFrame + 1) % 4; }
+    if (p.facing === -1) {
+      ctx.scale(-1, 1);
+      drawSpriteFrame(ctx, "sp_player_walk", 64, 96, p.walkFrame, -p.x - dw/2, py, dw, dh);
+    } else {
+      drawSpriteFrame(ctx, "sp_player_walk", 64, 96, p.walkFrame, px, py, dw, dh);
+    }
+  } else {
+    // Idle
+    drawAsset(ctx, "sp_player_idle", px, py, dw, dh);
+  }
+
+  ctx.restore();
+
+  // Drop shadow ellipse for depth cue
+  ctx.save();
+  ctx.fillStyle = "rgba(0,0,0,0.22)";
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y, dw * 0.38, 6 * sc, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+/** Render a dialog speech bubble above the player */
+function renderDialog() {
+  if (!S.dialog) return;
+  const d = S.dialog;
+  const p = S.player;
+  const maxW = 330, pad = 12;
+
+  ctx.save();
+  ctx.font = CONFIG.FONT;
+
+  // Word-wrap the text
+  const lines = [];
+  let cur = "";
+  for (const word of d.text.split(" ")) {
+    const test = cur ? cur + " " + word : word;
+    if (ctx.measureText(test).width > maxW - pad * 2) { if (cur) lines.push(cur); cur = word; }
+    else cur = test;
+  }
+  if (cur) lines.push(cur);
+
+  const lineH = 20;
+  const contentW = Math.max(...lines.map(l => ctx.measureText(l).width));
+  const boxW = Math.min(maxW, contentW + pad * 2);
+  const boxH = lines.length * lineH + pad * 2;
+
+  const sc = scaleFory(p.y);
+  let bx = p.x - boxW / 2;
+  let by = p.y - 96 * sc - boxH - 18;
+  bx = Math.max(8, Math.min(CONFIG.WIDTH - boxW - 8, bx));
+  by = Math.max(8, Math.min(CONFIG.GAME_HEIGHT - boxH - 8, by));
+
+  const col = d.type === "danger" ? CONFIG.COLORS.danger
+            : d.type === "warn"   ? CONFIG.COLORS.warn
+            : CONFIG.COLORS.text;
+
+  roundRect(ctx, bx, by, boxW, boxH, 6, "rgba(0,0,0,0.90)", col);
+
+  ctx.fillStyle = col;
+  ctx.font = CONFIG.FONT;
+  for (let i = 0; i < lines.length; i++) {
+    ctx.fillText(lines[i], bx + pad, by + pad + (i + 1) * lineH - 4);
+  }
+
+  // Bubble tail
+  const tailX = Math.max(bx + 14, Math.min(bx + boxW - 14, p.x));
+  ctx.beginPath();
+  ctx.moveTo(tailX - 6, by + boxH);
+  ctx.lineTo(tailX + 6, by + boxH);
+  ctx.lineTo(tailX,     by + boxH + 10);
+  ctx.closePath();
+  ctx.fillStyle   = "rgba(0,0,0,0.90)";
+  ctx.fill();
+  ctx.strokeStyle = col;
+  ctx.lineWidth   = 1;
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** Radial verb-coin menu */
+function renderVerbCoin() {
+  const vc = S.verbCoin;
+  const { x, y, verbs } = vc;
+  const r = 72, bw = 94, bh = 28;
+
+  // Dim the game area
+  ctx.fillStyle = "rgba(0,0,0,0.48)";
+  ctx.fillRect(0, 0, CONFIG.WIDTH, CONFIG.GAME_HEIGHT);
+
+  // Center disc
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x, y, 28, 0, Math.PI * 2);
+  ctx.fillStyle   = "rgba(12,20,12,0.96)";
+  ctx.fill();
+  ctx.strokeStyle = "#446644";
+  ctx.lineWidth   = 2;
+  ctx.stroke();
+  ctx.font          = CONFIG.FONT_SMALL;
+  ctx.fillStyle     = CONFIG.COLORS.text;
+  ctx.textAlign     = "center";
+  ctx.textBaseline  = "middle";
+  // Truncate label so it fits the 28px disc
+  const lbl = vc.hotspot.label.length > 10 ? vc.hotspot.label.substring(0,9)+"…" : vc.hotspot.label;
+  ctx.fillText(lbl, x, y);
+  ctx.restore();
+
+  // Verb buttons
+  for (let i = 0; i < verbs.length; i++) {
+    const angle = (i / verbs.length) * Math.PI * 2 - Math.PI / 2;
+    const bx = x + Math.cos(angle) * r;
+    const by = y + Math.sin(angle) * r;
+    const hovered = mouse.x >= bx-bw/2 && mouse.x <= bx+bw/2 &&
+                    mouse.y >= by-bh/2 && mouse.y <= by+bh/2;
+    ctx.save();
+    roundRect(ctx, bx-bw/2, by-bh/2, bw, bh, 4,
+      hovered ? "#253d25" : "rgba(8,16,8,0.96)",
+      hovered ? CONFIG.COLORS.safe : "#446644");
+    ctx.font          = CONFIG.FONT_SMALL;
+    ctx.fillStyle     = hovered ? "#ffffff" : CONFIG.COLORS.verbText;
+    ctx.textAlign     = "center";
+    ctx.textBaseline  = "middle";
+    ctx.fillText(verbs[i], bx, by);
+    ctx.restore();
+  }
+}
+
+/** Bottom UI panel — inventory + verb buttons */
+function renderPanel() {
+  const py = CONFIG.GAME_HEIGHT;
+
+  ctx.fillStyle   = CONFIG.COLORS.panel;
+  ctx.fillRect(0, py, CONFIG.WIDTH, CONFIG.PANEL_HEIGHT);
+  ctx.strokeStyle = CONFIG.COLORS.panelBorder;
+  ctx.lineWidth   = 1;
+  ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(CONFIG.WIDTH, py); ctx.stroke();
+
+  // "INVENTORY:" label
+  ctx.font      = CONFIG.FONT_SMALL;
+  ctx.fillStyle = "#446644";
+  ctx.fillText("INVENTORY:", 16, py + 16);
+
+  // Divider between inventory and verbs
+  ctx.beginPath();
+  ctx.moveTo(480, py + 8); ctx.lineTo(480, py + CONFIG.PANEL_HEIGHT - 8);
+  ctx.strokeStyle = "#2a2a2a"; ctx.stroke();
+
+  // Inventory slots
+  const slotSz = 48, gap = 12, startX = 16;
+  const slotY  = py + (CONFIG.PANEL_HEIGHT - slotSz) / 2;
+  for (let i = 0; i < 6; i++) {
+    const sx       = startX + i * (slotSz + gap);
+    const selected = S.inv[i] && S.inv[i] === S.selectedItem;
+    roundRect(ctx, sx, slotY, slotSz, slotSz, 4,
+      CONFIG.COLORS.invSlot, selected ? CONFIG.COLORS.safe : "#2e2e2e");
+    if (i < S.inv.length) {
+      const item = S.inv[i];
+      drawAsset(ctx, "sp_item_" + item, sx + 8, slotY + 8, 32, 32);
+      // Tooltip on hover
+      if (mouse.x >= sx && mouse.x <= sx+slotSz && mouse.y >= slotY && mouse.y <= slotY+slotSz) {
+        const labels = { key:"Brass Key", flashlight:"Flashlight", note:"Note" };
+        ctx.save();
+        ctx.font      = CONFIG.FONT_SMALL;
+        ctx.fillStyle = CONFIG.COLORS.text;
+        ctx.textAlign = "center";
+        ctx.fillText(labels[item] || item, sx + slotSz/2, slotY - 6);
+        ctx.restore();
+      }
+    }
+  }
+
+  // Verb buttons
+  const btnY = py + (CONFIG.PANEL_HEIGHT - VERB_BTN_H) / 2;
+  for (let i = 0; i < VERB_LABELS.length; i++) {
+    const bx     = VERB_BTN_START_X + i * (VERB_BTN_W + VERB_BTN_GAP);
+    const action = VERB_ACTIONS[VERB_LABELS[i]];
+    const active = S.activeVerb === action;
+    const hov    = mouse.x >= bx && mouse.x <= bx+VERB_BTN_W &&
+                   mouse.y >= btnY && mouse.y <= btnY+VERB_BTN_H;
+    ctx.save();
+    roundRect(ctx, bx, btnY, VERB_BTN_W, VERB_BTN_H, 4,
+      active ? "#1e3d1e" : (hov ? CONFIG.COLORS.verbHover : CONFIG.COLORS.verbBg),
+      active ? CONFIG.COLORS.safe : "#3a3a3a");
+    ctx.font          = "13px 'Courier New', monospace";
+    ctx.fillStyle     = active ? CONFIG.COLORS.safe : CONFIG.COLORS.verbText;
+    ctx.textAlign     = "center";
+    ctx.textBaseline  = "middle";
+    ctx.fillText(VERB_LABELS[i], bx + VERB_BTN_W/2, btnY + VERB_BTN_H/2);
+    ctx.restore();
+  }
+}
+
+/** HUD — room name + danger indicator dot */
+function renderHUD() {
+  const rd = ROOMS[S.room];
+  ctx.save();
+  ctx.font      = CONFIG.FONT_SMALL;
+  ctx.fillStyle = "#446644";
+  ctx.textAlign = "right";
+  ctx.fillText(rd.name, CONFIG.WIDTH - 36, 18);
+  ctx.restore();
+
+  // Danger indicator circle
+  const inRoom   = S.bilax === S.room || S.bilaxEntering === S.room;
+  const adjacent = !inRoom && ADJ[S.room] && ADJ[S.room].has(S.bilax);
+  let dotColor;
+  if (inRoom) {
+    const p = 0.4 + 0.6 * Math.abs(Math.sin(S.frame * 0.25));
+    dotColor = `rgba(255,${Math.floor(40*(1-p))},${Math.floor(40*(1-p))},${0.6+0.4*p})`;
+  } else if (adjacent) {
+    const p = 0.4 + 0.6 * Math.abs(Math.sin(S.frame * CONFIG.DANGER_PULSE_SPEED));
+    dotColor = `rgba(255,${Math.floor(160*p)},0,${0.6+0.4*p})`;
+  } else {
+    dotColor = CONFIG.COLORS.safe;
+  }
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(CONFIG.WIDTH - 18, 18, 8, 0, Math.PI * 2);
+  ctx.fillStyle   = dotColor;
+  ctx.fill();
+  ctx.strokeStyle = "#222";
+  ctx.lineWidth   = 1.5;
+  ctx.stroke();
+  ctx.font      = "10px 'Courier New', monospace";
+  ctx.fillStyle = "#3a5a3a";
+  ctx.textAlign = "right";
+  ctx.fillText("BILAX", CONFIG.WIDTH - 28, 22);
+  ctx.restore();
+}
+
+/** Fade-to-black transition overlay */
+function renderTransition() {
+  const t = S.transition;
+  const alpha = t.dir === "out"
+    ? t.frame / CONFIG.TRANSITION_FRAMES
+    : 1 - (t.frame / CONFIG.TRANSITION_FRAMES);
+  ctx.fillStyle = `rgba(0,0,0,${alpha})`;
+  ctx.fillRect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
+}
+
+// ============================================================
+// SCENE: GAME OVER
+// ============================================================
+function renderGameOver() {
+  S.endAlpha = Math.min(1, S.endAlpha + 0.022);
+  ctx.fillStyle = `rgba(0,0,0,${S.endAlpha})`;
+  ctx.fillRect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
+  if (S.endAlpha < 0.45) return;
+
+  const a = Math.min(1, (S.endAlpha - 0.45) / 0.55);
+  ctx.save();
+  ctx.globalAlpha = a;
+
+  ctx.fillStyle = "#160000";
+  ctx.fillRect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
+
+  ctx.shadowColor = "#ff0000";
+  ctx.shadowBlur  = 32;
+  ctx.font = "bold 68px 'Courier New', monospace";
+  ctx.fillStyle = "#ff2222";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("BILAX FOUND YOU", CONFIG.WIDTH/2, CONFIG.HEIGHT/2 - 64);
+
+  ctx.shadowBlur = 0;
+  ctx.font = "20px 'Courier New', monospace";
+  ctx.fillStyle = "#cc3333";
+  ctx.fillText("There is no escape from the darkness.", CONFIG.WIDTH/2, CONFIG.HEIGHT/2);
+
+  const bx = CONFIG.WIDTH/2 - 100, by = CONFIG.HEIGHT/2 + 60;
+  const hov = mouse.x >= bx && mouse.x <= bx+200 && mouse.y >= by && mouse.y <= by+44;
+  roundRect(ctx, bx, by, 200, 44, 6, hov ? "#4a0000" : "#280000", "#aa2222");
+  ctx.font = "18px 'Courier New', monospace";
+  ctx.fillStyle = hov ? "#ffbbbb" : "#ff6666";
+  ctx.fillText("TRY AGAIN", CONFIG.WIDTH/2, by + 22);
+
+  ctx.restore();
+  canvas.style.cursor = hov ? "pointer" : "default";
+}
+
+// ============================================================
+// SCENE: WIN
+// ============================================================
+function renderWin() {
+  S.endAlpha = Math.min(1, S.endAlpha + 0.018);
+  ctx.fillStyle = `rgba(0,0,0,${S.endAlpha})`;
+  ctx.fillRect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
+  if (S.endAlpha < 0.35) return;
+
+  const a = Math.min(1, (S.endAlpha - 0.35) / 0.65);
+  ctx.save();
+  ctx.globalAlpha = a;
+
+  drawAsset(ctx, "bg_win_screen", 0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
+  ctx.fillStyle = "rgba(0,0,18,0.58)";
+  ctx.fillRect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
+
+  ctx.shadowColor = "#44ffaa";
+  ctx.shadowBlur  = 22;
+  ctx.font = "bold 62px 'Courier New', monospace";
+  ctx.fillStyle = "#44ffaa";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("ESCAPED!", CONFIG.WIDTH/2, CONFIG.HEIGHT/2 - 62);
+
+  ctx.shadowBlur = 0;
+  ctx.font = "20px 'Courier New', monospace";
+  ctx.fillStyle = "#88ffcc";
+  ctx.fillText("You made it out alive.", CONFIG.WIDTH/2, CONFIG.HEIGHT/2);
+  ctx.font = "14px 'Courier New', monospace";
+  ctx.fillStyle = "#44cc88";
+  ctx.fillText("Bilax's domain could not hold you.", CONFIG.WIDTH/2, CONFIG.HEIGHT/2 + 32);
+
+  const bx = CONFIG.WIDTH/2 - 100, by = CONFIG.HEIGHT/2 + 80;
+  const hov = mouse.x >= bx && mouse.x <= bx+200 && mouse.y >= by && mouse.y <= by+44;
+  roundRect(ctx, bx, by, 200, 44, 6, hov ? "#002d1a" : "#001a0f", "#22aa66");
+  ctx.font = "18px 'Courier New', monospace";
+  ctx.fillStyle = hov ? "#aaffcc" : "#44ff88";
+  ctx.fillText("PLAY AGAIN", CONFIG.WIDTH/2, by + 22);
+
+  ctx.restore();
+  canvas.style.cursor = hov ? "pointer" : "default";
+}
+
+// ============================================================
+// UPDATE — Player movement, dialog ticks, transitions
+// ============================================================
+
+function updatePlayer() {
+  const p = S.player;
+  const dx = p.targetX - p.x;
+  const dy = p.targetY - p.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+
+  if (dist > 2) {
+    p.moving = true;
+    const spd = CONFIG.PLAYER_SPEED;
+    p.x += (dx / dist) * Math.min(spd, dist);
+    p.y += (dy / dist) * Math.min(spd, dist);
+    if (dx >  0.5) p.facing =  1;
+    if (dx < -0.5) p.facing = -1;
+  } else if (p.moving) {
+    p.x = p.targetX;
+    p.y = p.targetY;
+    p.moving    = false;
+    p.walkFrame = 0;
+    // Fire pending action now that player has arrived
+    if (S.pendingAction) {
+      const { verb, hotspot } = S.pendingAction;
+      S.pendingAction = null;
+      executeAction(verb, hotspot);
+    }
+  }
+}
+
+function updateTransition() {
+  if (!S.transition.active) return;
+  const t = S.transition;
+  t.frame++;
+  if (t.dir === "out" && t.frame >= CONFIG.TRANSITION_FRAMES) {
+    changeRoom(t.nextRoom);
+    t.dir = "in"; t.frame = 0;
+  } else if (t.dir === "in" && t.frame >= CONFIG.TRANSITION_FRAMES) {
+    t.active = false;
+  }
+}
+
+function updateDialog() {
+  if (!S.dialog) return;
+  S.dialog.timer--;
+  if (S.dialog.timer <= 0) advanceDialog();
+}
+
+// ============================================================
+// RESTART
+// ============================================================
+function restartGame() {
+  initGameState();
+  S.scene = "game";
+  setTimeout(() => {
+    showDialog("You wake up in the dark house. Find a key and escape.", "normal");
+  }, 400);
+  playSound("ambient_house");
+}
+
+// ============================================================
+// MAIN LOOP
+// ============================================================
+function gameLoop() {
+  ctx.clearRect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
+  S.frame++;
+
+  switch (S.scene) {
+    case "boot":
+      renderBoot();
+      break;
+    case "game":
+      updatePlayer();
+      updateTransition();
+      updateDialog();
+      renderGame();
+      break;
+    case "gameover":
+      renderGameOver();
+      break;
+    case "win":
+      renderWin();
+      break;
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ============================================================
+// STARTUP
+// ============================================================
+preloadAllAssets();
+initGameState();
+gameLoop();
+
+// Show intro text once the player clicks through to the game scene
+const _introPoller = setInterval(() => {
+  if (S.scene === "game" && !S._introShown) {
+    S._introShown = true;
+    showDialog("You are trapped in the house. Find a key and escape through the front door.", "normal");
+    clearInterval(_introPoller);
+  }
+}, 120);
+
 </script>
 </body>
 </html>

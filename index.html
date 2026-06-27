@@ -139,17 +139,21 @@ const ROOMS = {
     name: "Living Room",
     bg: "living_room",
     dark: false,
-    // Keyed by direction for adjacency; "_front_door" is a special exit
     exits: { north: "hallway", east: "kitchen", west: "_front_door" },
     hotspots: [
-      { id: "exit_hallway", label: "Hallway",      type: "exit",  dest: "hallway",      x: 430, y: 220, w: 140, h: 180, dir: "north" },
-      { id: "exit_kitchen", label: "Kitchen",      type: "exit",  dest: "kitchen",      x: 890, y: 260, w: 70,  h: 160, dir: "east"  },
-      { id: "exit_door",    label: "Front Door",   type: "exit",  dest: "_front_door",  x: 0,   y: 260, w: 75,  h: 160, dir: "west"  },
-      { id: "hide_sofa",    label: "Behind Sofa",  type: "hide",  x: 140, y: 320, w: 220, h: 80 },
-      { id: "hide_table",   label: "Coffee Table", type: "hide",  x: 370, y: 360, w: 160, h: 55 },
+      // Far-right door (HALL label in bg)
+      { id: "exit_hallway", label: "Hallway",      type: "exit",  dest: "hallway",      x: 870, y: 55,  w: 90,  h: 365, dir: "north" },
+      // Center-right door (KITCH label in bg)
+      { id: "exit_kitchen", label: "Kitchen",      type: "exit",  dest: "kitchen",      x: 685, y: 55,  w: 155, h: 365, dir: "east"  },
+      // Far-left door (DOOR label in bg)
+      { id: "exit_door",    label: "Front Door",   type: "exit",  dest: "_front_door",  x: 0,   y: 55,  w: 95,  h: 365, dir: "west"  },
+      // Green sofa center
+      { id: "hide_sofa",    label: "Behind Sofa",  type: "hide",  x: 200, y: 255, w: 455, h: 135 },
+      // Coffee table in front of sofa
+      { id: "hide_table",   label: "Coffee Table", type: "hide",  x: 325, y: 358, w: 220, h: 55  },
     ],
-    playerStart: { x: 480, y: 350 },
-    bilaxPos: { x: 200, y: 320 },
+    playerStart: { x: 480, y: 355 },
+    bilaxPos: { x: 750, y: 330 },
   },
   hallway: {
     name: "Hallway",
@@ -157,13 +161,17 @@ const ROOMS = {
     dark: false,
     exits: { south: "living_room", east: "master_bedroom", up: "attic" },
     hotspots: [
-      { id: "exit_living",  label: "Living Room",    type: "exit", dest: "living_room",    x: 0,   y: 260, w: 75,  h: 160, dir: "south" },
-      { id: "exit_bedroom", label: "Master Bedroom", type: "exit", dest: "master_bedroom", x: 885, y: 260, w: 75,  h: 160, dir: "east"  },
-      { id: "exit_attic",   label: "Attic Stairs",   type: "exit", dest: "attic",          x: 400, y: 200, w: 160, h: 120, dir: "up"    },
-      { id: "hide_closet",  label: "Coat Closet",    type: "hide", x: 100, y: 280, w: 100, h: 130 },
+      // Left door (LIVING label in bg)
+      { id: "exit_living",  label: "Living Room",    type: "exit", dest: "living_room",    x: 185, y: 175, w: 145, h: 230, dir: "south" },
+      // Far-right door (BED label in bg)
+      { id: "exit_bedroom", label: "Master Bedroom", type: "exit", dest: "master_bedroom", x: 795, y: 175, w: 165, h: 220, dir: "east"  },
+      // Center-top hatch (ATTIC label in bg)
+      { id: "exit_attic",   label: "Attic",          type: "exit", dest: "attic",          x: 385, y: 85,  w: 190, h: 155, dir: "up"    },
+      // Closet door center-right (CLOSET label in bg)
+      { id: "hide_closet",  label: "Coat Closet",    type: "hide", x: 630, y: 180, w: 120, h: 210 },
     ],
-    playerStart: { x: 480, y: 350 },
-    bilaxPos: { x: 700, y: 310 },
+    playerStart: { x: 480, y: 355 },
+    bilaxPos: { x: 480, y: 320 },
   },
   master_bedroom: {
     name: "Master Bedroom",
@@ -171,28 +179,35 @@ const ROOMS = {
     dark: false,
     exits: { west: "hallway" },
     hotspots: [
-      { id: "exit_hallway",  label: "Hallway",          type: "exit",    dest: "hallway",  x: 0,   y: 260, w: 75,  h: 160, dir: "west" },
-      { id: "item_note",     label: "Note",             type: "item",    item: "note",     x: 670, y: 345, w: 55, h: 45  },
-      { id: "hide_bed",      label: "Under the Bed",    type: "hide",    x: 420, y: 355, w: 250, h: 65 },
-      { id: "hide_wardrobe", label: "In the Wardrobe",  type: "hide",    x: 150, y: 265, w: 120, h: 155 },
+      // Far-left door (HALL label in bg)
+      { id: "exit_hallway",  label: "Hallway",          type: "exit",    dest: "hallway",  x: 0,   y: 50,  w: 82,  h: 370, dir: "west" },
+      // Note on floor in front of bed (center-bottom)
+      { id: "item_note",     label: "Note",             type: "item",    item: "note",     x: 425, y: 365, w: 75,  h: 55  },
+      // Bed (center)
+      { id: "hide_bed",      label: "Under the Bed",    type: "hide",    x: 300, y: 350, w: 510, h: 70  },
+      // Wardrobe top-left
+      { id: "hide_wardrobe", label: "In the Wardrobe",  type: "hide",    x: 88,  y: 50,  w: 120, h: 175 },
     ],
-    playerStart: { x: 480, y: 350 },
-    bilaxPos: { x: 700, y: 310 },
+    playerStart: { x: 550, y: 355 },
+    bilaxPos: { x: 700, y: 320 },
   },
   attic: {
     name: "Attic",
-    bg: "attic_dark",    // bg key overridden at render time if flashlight present
+    bg: "attic_dark",
     dark: true,
     exits: { down: "hallway" },
     hotspots: [
-      { id: "exit_hallway",  label: "Stairs Down",      type: "exit",    dest: "hallway",  x: 400, y: 365, w: 160, h: 55, dir: "down" },
-      { id: "examine_trunk", label: "Old Trunk",        type: "examine", x: 240, y: 300, w: 200, h: 110 },
-      // hidden: true means it only renders after examine_trunk reveals it
-      { id: "item_key",      label: "Brass Key",        type: "item",    item: "key",      x: 305, y: 325, w: 55, h: 45, hidden: true },
-      { id: "hide_trunk",    label: "Behind the Trunk", type: "hide",    x: 190, y: 315, w: 95, h: 100 },
+      // Hatch at very top center (visible in both dark/lit bg)
+      { id: "exit_hallway",  label: "Stairs Down",      type: "exit",    dest: "hallway",  x: 430, y: 0,   w: 100, h: 65,  dir: "down" },
+      // Trunk center (visible in lit bg)
+      { id: "examine_trunk", label: "Old Trunk",        type: "examine", x: 345, y: 225, w: 230, h: 120 },
+      // Key revealed inside trunk
+      { id: "item_key",      label: "Brass Key",        type: "item",    item: "key",      x: 430, y: 290, w: 55,  h: 45,  hidden: true },
+      // Hide left of trunk
+      { id: "hide_trunk",    label: "Behind the Trunk", type: "hide",    x: 290, y: 240, w: 65,  h: 110 },
     ],
-    playerStart: { x: 480, y: 350 },
-    bilaxPos: { x: 200, y: 295 },
+    playerStart: { x: 560, y: 355 },
+    bilaxPos: { x: 200, y: 310 },
   },
   kitchen: {
     name: "Kitchen",
@@ -200,15 +215,19 @@ const ROOMS = {
     dark: false,
     exits: { west: "living_room", north: "pantry" },
     hotspots: [
-      { id: "exit_living",     label: "Living Room",    type: "exit",    dest: "living_room", x: 0,   y: 260, w: 75,  h: 160, dir: "west"  },
-      { id: "exit_pantry",     label: "Pantry",         type: "exit",    dest: "pantry",      x: 400, y: 195, w: 160, h: 120, dir: "north" },
-      { id: "examine_drawer",  label: "Kitchen Drawer", type: "examine", x: 600, y: 300, w: 155, h: 90 },
-      // hidden until examine_drawer is used
-      { id: "item_flashlight", label: "Flashlight",     type: "item",    item: "flashlight",  x: 640, y: 320, w: 55, h: 45, hidden: true },
-      { id: "hide_counter",    label: "Under Counter",  type: "hide",    x: 660, y: 355, w: 210, h: 65 },
+      // Right door (LIVING label in bg)
+      { id: "exit_living",     label: "Living Room",    type: "exit",    dest: "living_room", x: 880, y: 60,  w: 80,  h: 360, dir: "west"  },
+      // Left door (PANTRY label in bg)
+      { id: "exit_pantry",     label: "Pantry",         type: "exit",    dest: "pantry",      x: 0,   y: 70,  w: 82,  h: 350, dir: "north" },
+      // Drawer center at counter (clearly labeled DRAWER in bg)
+      { id: "examine_drawer",  label: "Kitchen Drawer", type: "examine", x: 350, y: 162, w: 200, h: 75  },
+      // Flashlight appears at drawer when revealed
+      { id: "item_flashlight", label: "Flashlight",     type: "item",    item: "flashlight",  x: 420, y: 170, w: 55,  h: 45,  hidden: true },
+      // Under the counter strip
+      { id: "hide_counter",    label: "Under Counter",  type: "hide",    x: 150, y: 355, w: 680, h: 65  },
     ],
-    playerStart: { x: 480, y: 350 },
-    bilaxPos: { x: 200, y: 310 },
+    playerStart: { x: 480, y: 355 },
+    bilaxPos: { x: 480, y: 320 },
   },
   pantry: {
     name: "Pantry",
@@ -216,11 +235,13 @@ const ROOMS = {
     dark: false,
     exits: { south: "kitchen" },
     hotspots: [
-      { id: "exit_kitchen",  label: "Kitchen",         type: "exit",    dest: "kitchen",  x: 400, y: 365, w: 160, h: 55, dir: "south" },
-      { id: "hide_shelving", label: "Behind Shelves",  type: "hide",    x: 95,  y: 270, w: 120, h: 150 },
+      // Center gap leads back to kitchen
+      { id: "exit_kitchen",  label: "Kitchen",         type: "exit",    dest: "kitchen",  x: 345, y: 195, w: 270, h: 225, dir: "south" },
+      // Left shelving unit
+      { id: "hide_shelving", label: "Behind Shelves",  type: "hide",    x: 0,   y: 105, w: 205, h: 315 },
     ],
-    playerStart: { x: 480, y: 350 },
-    bilaxPos: { x: 700, y: 305 },
+    playerStart: { x: 480, y: 355 },
+    bilaxPos: { x: 700, y: 320 },
   },
 };
 

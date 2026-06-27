@@ -343,7 +343,7 @@ function initGameState() {
 
     // ---- Bilax AI ----
     room:         "living_room",    // player's current room
-    bilax:        "master_bedroom", // Bilax's current room
+    bilax:        "attic",          // Bilax's current room
     bilaxEntering: null,            // room ID Bilax is about to step into (grace turn)
     listenSafe:   false,            // if true, Bilax skips moving this turn
     hideStreak:   0,                // consecutive successful hide counts
@@ -511,7 +511,16 @@ function checkBilaxEncounter() {
     }
   } else {
     // Normal encounter check (Bilax was already in room, or not)
-    if (checkEncounter() === "caught") triggerGameOver();
+    const result = checkEncounter();
+    if (result === "hiding_safe") {
+      S.hideStreak++;
+      showDialog("Bilax lurks nearby... you stay perfectly still. He moves on.", "warn");
+      playSound("bilax_leave");
+      const out = Array.from(ADJ[S.bilax] || []).filter(r => r !== S.room);
+      if (out.length > 0) S.bilax = out[Math.floor(Math.random() * out.length)];
+    } else if (result === "caught") {
+      triggerGameOver();
+    }
   }
 }
 
@@ -521,7 +530,11 @@ function checkBilaxEncounter() {
  */
 function doTurn(skipMove) {
   if (S.gameOver || S.gameWon) return;
+  // Preserve bilaxEntering across moveBilax — the else-branch inside moveBilax
+  // would clear it on a 45% "stay" roll, breaking the guaranteed grace turn.
+  const savedEntering = S.bilaxEntering;
   if (!skipMove) moveBilax(new Set());
+  if (savedEntering !== null) S.bilaxEntering = savedEntering;
   S.listenSafe = false; // consumed
   checkBilaxEncounter();
 }
@@ -584,6 +597,11 @@ function hotspotVisible(roomId, hs) {
 /** Execute a verb on a hotspot after the player has walked to it */
 function executeAction(verb, hotspot) {
   if (!hotspot) { doTurn(false); return; }
+
+  // Any action other than hiding resets the hide streak
+  if (verb !== "HIDE" && verb !== "HIDE HERE") {
+    S.hideStreak = 0;
+  }
 
   // ---- WALK TO ----
   if (verb === "WALK TO" && hotspot.type === "exit") {

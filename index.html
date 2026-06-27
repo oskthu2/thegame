@@ -250,7 +250,7 @@ function loadAsset(key, file, label, color) {
   const img = new Image();
   img.onload  = () => { assetCache[key] = img; };
   img.onerror = () => { assetCache[key] = null; }; // keep placeholder
-  img.src = "/assets/" + file;
+  img.src = "assets/" + file;
 }
 
 /**
